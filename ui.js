@@ -311,7 +311,17 @@ export const UI = {
         const loader = document.getElementById('playerLoader');
 
         loader.style.display = 'flex';
+
+        // Timeout logic: If iframe takes > 8s, hide loader and show warning (optional)
+        const loadTimeout = setTimeout(() => {
+            if (loader.style.display !== 'none') {
+                loader.style.display = 'none';
+                console.warn('Server load timed out (visual only).');
+            }
+        }, 8000);
+
         iframe.onload = () => {
+            clearTimeout(loadTimeout);
             loader.style.display = 'none';
         };
 
