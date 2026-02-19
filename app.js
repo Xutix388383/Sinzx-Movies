@@ -26,6 +26,14 @@ const SERVERS = [
 function router() {
     const hash = window.location.hash;
 
+    // Hide Landing Page if not on root/welcome
+    const landing = document.getElementById('landing-page');
+    if (hash && hash !== '#welcome' && landing) {
+        landing.style.display = 'none';
+        app.style.display = 'block';
+        document.querySelector('.navbar').style.display = 'flex';
+    }
+
     if (hash.startsWith('#watch/')) {
         const id = hash.split('/')[1];
         renderWatchPage(id);
@@ -38,9 +46,14 @@ function router() {
     } else if (hash === '#movies') {
         renderCatalogPage('movie');
     } else if (hash === '#tv') {
-        renderCatalogPage('tv'); // Note: Basic TV support for now
-    } else {
+        renderCatalogPage('tv');
+    } else if (hash === '#install') {
+        renderInstallPage();
+    } else if (hash === '#home') {
         renderHomePage();
+    } else {
+        // Default to Welcome/Landing Page
+        renderWelcomePage();
     }
 
     window.scrollTo(0, 0);
@@ -48,7 +61,7 @@ function router() {
     // Update Active Nav Link
     document.querySelectorAll('.nav-links a').forEach(a => {
         a.classList.remove('active');
-        if (a.getAttribute('href') === hash || (hash === '' && a.getAttribute('href') === '#')) {
+        if (a.getAttribute('href') === hash) {
             a.classList.add('active');
         }
     });
@@ -58,6 +71,105 @@ window.addEventListener('hashchange', router);
 window.addEventListener('load', router);
 
 // --- Component Renderers ---
+
+// 0. Welcome / Landing Page
+function renderWelcomePage() {
+    // Hide Main App
+    app.style.display = 'none';
+    document.querySelector('.navbar').style.display = 'none';
+
+    // Check if landing exists, if not create it
+    let landing = document.getElementById('landing-page');
+    if (!landing) {
+        landing = document.createElement('div');
+        landing.id = 'landing-page';
+        landing.className = 'landing-page';
+        document.body.appendChild(landing);
+    }
+
+    landing.style.display = 'flex';
+    landing.innerHTML = `
+        <div class="landing-content">
+            <img src="logo.png" alt="Ethans Pirate Bay" class="landing-logo" style="max-width: 600px; width: 100%; height: auto; margin-bottom: 20px;">
+            <p class="landing-subtitle">Premium Free Streaming. Without Limits.</p>
+            
+            <div class="landing-features">
+                <div class="feature-item"><i class="fas fa-bolt"></i> Super Fast</div>
+                <div class="feature-item"><i class="fas fa-ban"></i> Ad-Free Experience</div>
+                <div class="feature-item"><i class="fas fa-tv"></i> Smart TV Ready</div>
+                <div class="feature-item"><i class="fas fa-sync"></i> 24/7 Updates</div>
+            </div>
+            
+            <a href="#home" class="btn btn-primary" style="padding: 20px 50px; font-size: 1.5rem;">
+                <i class="fas fa-play"></i> Enter Site
+            </a>
+            
+            <p style="margin-top: 50px; color: var(--text-muted); font-size: 0.8rem;">
+                Made by <strong>Ethan</strong>.<br>
+                Public & Free Forever.
+            </p>
+        </div>
+    `;
+}
+
+// 0.5 Install Guide Page
+function renderInstallPage() {
+    app.innerHTML = `
+        <div class="container" style="padding-top: 100px; max-width: 1000px; margin: 0 auto; padding-left: 20px; padding-right: 20px;">
+            <h1 class="section-title" style="justify-content: center; font-size: 2.5rem; margin-bottom: 50px;">How to Install App</h1>
+            
+            <div class="install-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
+                
+                <!-- iOS -->
+                <div class="install-card" style="background: var(--bg-card); padding: 30px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
+                    <div style="font-size: 3rem; color: var(--primary); margin-bottom: 20px;"><i class="fab fa-apple"></i></div>
+                    <h2 style="margin-bottom: 15px;">iOS (iPhone/iPad)</h2>
+                    <ol style="text-align: left; padding-left: 20px; color: var(--text-gray); line-height: 1.8;">
+                        <li>Open <strong style="color: #fff;">Safari</strong>.</li>
+                        <li>Tap the <strong style="color: #fff;">Share</strong> button (box with arrow).</li>
+                        <li>Scroll down and tap <strong style="color: #fff;">Add to Home Screen</strong>.</li>
+                        <li>Tap <strong>Add</strong>.</li>
+                    </ol>
+                </div>
+
+                <!-- Android -->
+                <div class="install-card" style="background: var(--bg-card); padding: 30px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
+                    <div style="font-size: 3rem; color: #a4c639; margin-bottom: 20px;"><i class="fab fa-android"></i></div>
+                    <h2 style="margin-bottom: 15px;">Android</h2>
+                    <ol style="text-align: left; padding-left: 20px; color: var(--text-gray); line-height: 1.8;">
+                        <li>Open <strong style="color: #fff;">Chrome</strong>.</li>
+                        <li>Tap the <strong style="color: #fff;">Three Dots</strong> (menu).</li>
+                        <li>Tap <strong style="color: #fff;">Install App</strong> or <strong>Add to Home Screen</strong>.</li>
+                        <li>Confirm by tapping <strong>Install</strong>.</li>
+                    </ol>
+                </div>
+
+                <!-- Smart TV / Console -->
+                <div class="install-card" style="background: var(--bg-card); padding: 30px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
+                    <div style="font-size: 3rem; color: #ff0055; margin-bottom: 20px;"><i class="fas fa-tv"></i></div>
+                    <h2 style="margin-bottom: 15px;">Smart TV / Console</h2>
+                    <ul style="text-align: left; padding-left: 20px; color: var(--text-gray); line-height: 1.8;">
+                        <li><strong>Roku/FireTV</strong>: Use the "Web Video Caster" app on your phone to cast videos directly to your TV.</li>
+                        <li><strong>Xbox/PlayStation</strong>: Use the built-in Edge/Web Browser and bookmark this site. Control with your controller!</li>
+                    </ul>
+                </div>
+
+                <!-- PC / Mac -->
+                <div class="install-card" style="background: var(--bg-card); padding: 30px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
+                    <div style="font-size: 3rem; color: #00a8ff; margin-bottom: 20px;"><i class="fas fa-desktop"></i></div>
+                    <h2 style="margin-bottom: 15px;">PC / Mac</h2>
+                    <ol style="text-align: left; padding-left: 20px; color: var(--text-gray); line-height: 1.8;">
+                        <li>Open <strong style="color: #fff;">Chrome</strong> or <strong style="color: #fff;">Edge</strong>.</li>
+                        <li>Click the install icon in the address bar (Monitor with down arrow).</li>
+                        <li>Click <strong style="color: #fff;">Install</strong>.</li>
+                        <li>It will now open in its own window like a native app.</li>
+                    </ol>
+                </div>
+
+            </div>
+        </div>
+    `;
+}
 
 // 1. Home Page (Curated)
 async function renderHomePage() {
@@ -120,7 +232,7 @@ async function renderCatalogPage(type) {
     const allItems = [...page1.results, ...page2.results]; // Merge results
 
     let html = `
-        <div class="container" style="padding-top: 100px; max-width: var(--container-width); margin: 0 auto;">
+        <div class="container" style="padding-top: 100px; max-width: var(--container-width); margin: 0 auto; padding-left: 20px; padding-right: 20px;">
             <h1 class="section-title">${title}</h1>
             <div class="movie-grid">
                 ${allItems.map(item => createCard(item)).join('')}
@@ -248,9 +360,23 @@ async function renderWatchPage(id) {
     });
 }
 
-// 5. Search Logic
+// 5. Live Search Logic
+let searchTimeout;
+searchInput.addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    const query = e.target.value.trim();
+
+    if (query.length > 2) {
+        // Debounce for 500ms then auto-search
+        searchTimeout = setTimeout(() => {
+            window.location.hash = `#search/${encodeURIComponent(query)}`;
+        }, 500);
+    }
+});
+
 searchInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
+        clearTimeout(searchTimeout);
         const query = searchInput.value;
         if (query) window.location.hash = `#search/${encodeURIComponent(query)}`;
     }

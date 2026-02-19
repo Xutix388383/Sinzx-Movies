@@ -3,8 +3,15 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#050505">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Ethans Pirate Bay - Free Movies & TV</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+
     <!-- Google Fonts: Outfit (Modern/Premium) + Inter (Clean Text) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,7 +32,7 @@
         <!-- Navigation -->
         <nav class="navbar">
             <div class="nav-container">
-                <a href="#" class="logo">Ethans<span class="highlight">PirateBay</span></a>
+                <a href="#" class="logo"><img src="logo.png" alt="Ethans Pirate Bay" style="height: 50px;"></a>
                 <div class="search-bar">
                     <i class="fas fa-search"></i>
                     <input type="text" id="searchInput" placeholder="Search...">
@@ -34,6 +41,7 @@
                     <a href="#" class="active">Home</a>
                     <a href="#movies">Movies</a>
                     <a href="#tv">TV Shows</a>
+                    <a href="#install" style="color: var(--primary);">How to Install</a>
                 </div>
             </div>
         </nav>
