@@ -484,3 +484,13 @@ footer {
     margin-left: 10px;
     font-size: 1rem;
 }
+
+.ad-free-badge {
+    background: #4cd137;
+    color: black;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+    font-weight: 800;
+}

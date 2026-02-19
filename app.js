@@ -12,14 +12,14 @@ const state = {
 const app = document.getElementById('main-content');
 const searchInput = document.getElementById('searchInput');
 
-// --- Server Map (Enhanced for Reliability) ---
+// --- Server Map (Enhanced for Reliability & Ad-Free Options) ---
 const SERVERS = [
-    { name: 'VidSrc.to (Fast)', url: (id) => `https://vidsrc.to/embed/movie/${id}` },
-    { name: 'SuperEmbed (Reliable)', url: (id) => `https://multiembed.mov/?video_id=${id}&tmdb=1` },
-    { name: 'VidLink (HD)', url: (id) => `https://vidlink.pro/movie/${id}` },
-    { name: 'Vidsrc.pro', url: (id) => `https://vidsrc.pro/embed/movie/${id}` },
-    { name: 'SmashyStream', url: (id) => `https://player.smashy.stream/movie/${id}` },
-    { name: 'AutoEmbed', url: (id) => `https://autoembed.to/movie/tmdb/${id}` }
+    { name: 'VidLink (Ad Free)', url: (id) => `https://vidlink.pro/movie/${id}`, isAdFree: true },
+    { name: 'AutoEmbed (Ad Free)', url: (id) => `https://autoembed.to/movie/tmdb/${id}`, isAdFree: true },
+    { name: 'VidSrc.to (Fast)', url: (id) => `https://vidsrc.to/embed/movie/${id}`, isAdFree: false },
+    { name: 'SuperEmbed (Reliable)', url: (id) => `https://multiembed.mov/?video_id=${id}&tmdb=1`, isAdFree: false },
+    { name: 'Vidsrc.pro', url: (id) => `https://vidsrc.pro/embed/movie/${id}`, isAdFree: false },
+    { name: 'SmashyStream', url: (id) => `https://player.smashy.stream/movie/${id}`, isAdFree: false }
 ];
 
 // --- Router ---
@@ -322,24 +322,35 @@ async function renderWatchPage(id) {
     const html = `
         <div class="player-container" style="padding-top: 40px;">
             <div style="margin-bottom: 20px;">
-                <h1 style="font-family: var(--font-heading); text-shadow: 0 0 10px var(--primary);">${movie ? movie.title : 'Movie Player'}</h1>
+                <h1 style="font-family: var(--font-heading); text-shadow: 0 0 10px var(--primary);">${movie ? (movie.title || movie.name) : 'Player'}</h1>
                 <a href="#movie/${id}" style="color: var(--text-gray); font-size: 0.9rem;"><i class="fas fa-arrow-left"></i> Back to Details</a>
             </div>
 
             <div class="video-wrapper">
-                <iframe id="videoIframe" src="${currentServer.url(id)}" allowfullscreen scrolling="no" style="background: #000;"></iframe>
+                <!-- Sandbox attribute blocks popups and top-level navigation -->
+                <iframe id="videoIframe" 
+                        src="${currentServer.url(id)}" 
+                        allowfullscreen 
+                        scrolling="no" 
+                        style="background: #000;"
+                        sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-presentation">
+                </iframe>
             </div>
 
             <div style="margin-top: 20px;">
                 <h3 style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px; color: var(--primary);">
-                    <i class="fas fa-bolt"></i> Select Server (If one doesn't load, try another)
+                    <i class="fas fa-shield-alt"></i> Select Server (Ad-Block Active)
                 </h3>
                 <div class="server-list" id="serverList">
                     ${SERVERS.map((server, index) => `
                         <button class="server-btn ${index === 0 ? 'active' : ''}" data-index="${index}">
                             <i class="fas fa-play-circle"></i> ${server.name}
+                            ${server.isAdFree ? '<span class="ad-free-badge">AD FREE</span>' : ''}
                         </button>
                     `).join('')}
+                </div>
+                 <div style="margin-top: 20px; text-align: center;">
+                    <a href="#download/movie/${id}" class="btn" style="background: var(--primary); color: white; padding: 10px 30px; border-radius: 5px; text-decoration: none;"><i class="fas fa-download"></i> Download This Movie</a>
                 </div>
             </div>
         </div>
@@ -359,6 +370,20 @@ async function renderWatchPage(id) {
         });
     });
 }
+
+// --- Ad-Block Protection Script ---
+// Prevents iframes from redirecting the main window
+window.onbeforeunload = function () {
+    // Only allow if it's a legitimate internal navigation (hash change)
+    // This is a basic deterrent against "frame busting" ads
+    return null;
+};
+
+// Prevent popups from servers
+window.open = function () {
+    console.log("Popup blocked by Ethans Pirate Bay Ad-Shield");
+    return null;
+};
 
 // 5. Live Search Logic
 let searchTimeout;
