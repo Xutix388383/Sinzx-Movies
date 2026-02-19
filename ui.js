@@ -324,10 +324,8 @@ export const UI = {
 
         // Helper to generate iframe URL
         const getUrl = (srv) => {
-            let url = srv.url(id);
-            if (type === 'tv' && url.includes('vidsrc')) return url.replace('/movie/', '/tv/').replace(`/${id}`, `/${id}/${season}/${episode}`);
-            if (type === 'tv' && url.includes('autoembed')) return url.replace('/movie/', '/tv/').replace(`/${id}`, `/${id}/${season}/${episode}`);
-            return url;
+            if (type === 'tv' && srv.tvUrl) return srv.tvUrl(id, season, episode);
+            return srv.url(id);
         };
 
         // Helper to render options consistently

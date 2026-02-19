@@ -1,30 +1,17 @@
 export const SERVERS = [
-    // --- Ad Free / Premium (Top Priority & Fastest) ---
-    { name: 'VidLink (Ad Free 4K)', url: (id) => `https://vidlink.pro/movie/${id}`, isAdFree: true, type: 'Premium' },
-    { name: 'AutoEmbed (Ad Free)', url: (id) => `https://autoembed.to/movie/tmdb/${id}`, isAdFree: true, type: 'Premium' },
-    { name: 'VidSrc.to (Ad Free)', url: (id) => `https://vidsrc.to/embed/movie/${id}`, isAdFree: true, type: 'Premium' },
-    { name: 'VidSrc.me (Ad Free Mirror)', url: (id) => `https://vidsrc.me/embed/${id}`, isAdFree: true, type: 'Premium' },
+    // --- Premium / Ad-Free ---
+    { name: 'PremiumAdsFree', url: (id) => `https://premiumadsfree.com/movie/${id}`, tvUrl: (id, s, e) => `https://premiumadsfree.com/tv/${id}/${s}/${e}`, isAdFree: true, type: 'Fast' },
 
-    // --- High Speed / Reliable (Standard) ---
-    { name: 'SuperEmbed (Multi-Language)', url: (id) => `https://multiembed.mov/?video_id=${id}&tmdb=1`, isAdFree: false, type: 'Fast' },
-    { name: '2Embed (Stabilized)', url: (id) => `https://www.2embed.cc/embed/${id}`, isAdFree: false, type: 'Fast' },
-    { name: 'SmashyStream (FHD)', url: (id) => `https://player.smashy.stream/movie/${id}`, isAdFree: false, type: 'Fast' },
-    { name: 'Vidsrc.pro (HLS)', url: (id) => `https://vidsrc.pro/embed/movie/${id}`, isAdFree: false, type: 'Fast' },
-    { name: 'AniWave (Anime/Cartoons)', url: (id) => `https://aniwave.to/embed/${id}`, isAdFree: false, type: 'Special' },
+    // --- Fastest ---
+    { name: '111movies', url: (id) => `https://111movies.com/movie/${id}`, tvUrl: (id, s, e) => `https://111movies.com/tv/${id}/${s}/${e}`, isAdFree: false, type: 'Fastest' },
 
-    // --- Proven Backups (Only the best ones) ---
-    { name: 'WarezCDN (Fast)', url: (id) => `https://warezcdn.com/embed/${id}`, isAdFree: false, type: 'Backup' },
-    { name: 'MCloud (Reliable)', url: (id) => `https://mcloud.to/embed/${id}`, isAdFree: false, type: 'Backup' },
-    { name: 'VidCloud (Mirror)', url: (id) => `https://vidcloud.co/embed/${id}`, isAdFree: false, type: 'Backup' },
-    { name: 'UpCloud (Mirror)', url: (id) => `https://upcloud.co/embed/${id}`, isAdFree: false, type: 'Backup' },
-    { name: 'Gomo (Asia/Global)', url: (id) => `https://gomo.to/movie/${id}`, isAdFree: false, type: 'Backup' },
-
-    // --- Fallbacks (Use Only if Needed) ---
-    { name: 'Server 26 (Auto 2)', url: (id) => `https://autoembed.to/movie/tmdb/${id}?server=2`, isAdFree: false, type: 'Fallback' },
-    { name: 'Server 27 (Auto 3)', url: (id) => `https://autoembed.to/movie/tmdb/${id}?server=3`, isAdFree: false, type: 'Fallback' },
-    { name: 'Server 42 (GoStream)', url: (id) => `https://gostream.site/embed/${id}`, isAdFree: false, type: 'Fallback' },
-    { name: 'Server 43 (MoviesJoy)', url: (id) => `https://moviesjoy.to/embed/${id}`, isAdFree: false, type: 'Fallback' },
-    { name: 'Server 41 (FMovies)', url: (id) => `https://fmovies.to/embed/${id}`, isAdFree: false, type: 'Fallback' }
+    // --- Fast ---
+    { name: 'vidlinkpro', url: (id) => `https://vidlink.pro/movie/${id}`, tvUrl: (id, s, e) => `https://vidlink.pro/tv/${id}/${s}/${e}`, isAdFree: false, type: 'Fast' },
+    { name: 'videasy4k', url: (id) => `https://videasy.net/movie/${id}`, tvUrl: (id, s, e) => `https://videasy.net/tv/${id}/${s}/${e}`, isAdFree: false, type: 'May have 4k' },
+    { name: 'vidzee', url: (id) => `https://vidzee.wtf/movie/${id}`, tvUrl: (id, s, e) => `https://vidzee.wtf/tv/${id}/${s}/${e}`, isAdFree: false, type: 'May have 4k' },
+    { name: 'vidsrccc', url: (id) => `https://vidsrc.cc/v2/embed/movie/${id}`, tvUrl: (id, s, e) => `https://vidsrc.cc/v2/embed/tv/${id}/${s}/${e}`, isAdFree: false, type: 'Fast' },
+    { name: 'vidsrcpro', url: (id) => `https://vidsrc.pro/embed/movie/${id}`, tvUrl: (id, s, e) => `https://vidsrc.pro/embed/tv/${id}/${s}/${e}`, isAdFree: false, type: 'Fast' },
+    { name: 'vidsrcxyz', url: (id) => `https://vidsrc.xyz/embed/movie?tmdb=${id}`, tvUrl: (id, s, e) => `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=${s}&episode=${e}`, isAdFree: false, type: 'Standard' },
+    { name: 'embedccMovie', url: (id) => `https://www.2embed.cc/embed/${id}`, tvUrl: (id, s, e) => `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}`, isAdFree: false, type: 'Standard' },
+    { name: 'vidsrctop', url: (id) => `https://vidsrc.top/embed/movie/${id}`, tvUrl: (id, s, e) => `https://vidsrc.top/embed/tv/${id}/${s}/${e}`, isAdFree: false, type: 'Standard' }
 ];
-
-// Removed ~30 broken/slow servers to improve load times.
