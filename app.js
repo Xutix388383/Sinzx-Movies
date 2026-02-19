@@ -15,15 +15,17 @@ function router() {
     // Auto-login: if user previously logged in, restore session and skip login/welcome
     const isLoggedIn = Auth.autoLogin();
     if (isLoggedIn && (!hash || hash === '#welcome' || hash === '#login')) {
+        // Make sure landing page is hidden and app is visible
+        const earlyLanding = document.getElementById('landing-page');
+        if (earlyLanding) earlyLanding.style.display = 'none';
+        app.style.display = 'block';
+        document.querySelector('.navbar').style.display = 'flex';
         window.location.hash = '#home';
         return;
     }
 
     // Landing Logic
     const landing = document.getElementById('landing-page');
-    // If hash exists and is NOT #welcome, hide landing.
-    // However, if we want strict gatekeeping, we ensure landing is shown if they haven't "passed"?
-    // For now, follow user flow: #home enters site.
     if (hash && hash !== '#welcome' && landing) {
         landing.style.display = 'none';
         app.style.display = 'block';
