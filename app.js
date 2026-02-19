@@ -37,9 +37,25 @@ function router() {
     if (hash.startsWith('#watch/')) {
         const id = hash.split('/')[1];
         renderWatchPage(id);
+    } else if (hash.startsWith('#download/')) {
+        const parts = hash.split('/');
+        const type = parts[1];
+        const id = parts[2];
+        renderDownloadPage(type, id);
+    } else if (hash.startsWith('#transfer/')) { // New Transfer Route
+        // Format: #transfer/type/id/season/episode
+        const parts = hash.split('/');
+        const type = parts[1];
+        const id = parts[2];
+        const season = parts[3] || null;
+        const episode = parts[4] || null;
+        renderTransferPage(type, id, season, episode);
     } else if (hash.startsWith('#movie/')) {
         const id = hash.split('/')[1];
-        renderDetailsPage(id);
+        renderDetailsPage(id, 'movie');
+    } else if (hash.startsWith('#tv/')) {
+        const id = hash.split('/')[1];
+        renderDetailsPage(id, 'tv');
     } else if (hash.startsWith('#search/')) {
         const query = decodeURIComponent(hash.split('/')[1]);
         renderSearchPage(query);
@@ -92,18 +108,18 @@ function renderWelcomePage() {
         <div class="landing-content">
             <img src="logo.png" alt="Ethans Pirate Bay" class="landing-logo" style="max-width: 600px; width: 100%; height: auto; margin-bottom: 20px;">
             <p class="landing-subtitle">Premium Free Streaming. Without Limits.</p>
-            
+
             <div class="landing-features">
                 <div class="feature-item"><i class="fas fa-bolt"></i> Super Fast</div>
                 <div class="feature-item"><i class="fas fa-ban"></i> Ad-Free Experience</div>
                 <div class="feature-item"><i class="fas fa-tv"></i> Smart TV Ready</div>
                 <div class="feature-item"><i class="fas fa-sync"></i> 24/7 Updates</div>
             </div>
-            
+
             <a href="#home" class="btn btn-primary" style="padding: 20px 50px; font-size: 1.5rem;">
                 <i class="fas fa-play"></i> Enter Site
             </a>
-            
+
             <p style="margin-top: 50px; color: var(--text-muted); font-size: 0.8rem;">
                 Made by <strong>Ethan</strong>.<br>
                 Public & Free Forever.
@@ -117,9 +133,9 @@ function renderInstallPage() {
     app.innerHTML = `
         <div class="container" style="padding-top: 100px; max-width: 1000px; margin: 0 auto; padding-left: 20px; padding-right: 20px;">
             <h1 class="section-title" style="justify-content: center; font-size: 2.5rem; margin-bottom: 50px;">How to Install App</h1>
-            
+
             <div class="install-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
-                
+
                 <!-- iOS -->
                 <div class="install-card" style="background: var(--bg-card); padding: 30px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
                     <div style="font-size: 3rem; color: var(--primary); margin-bottom: 20px;"><i class="fab fa-apple"></i></div>
@@ -207,7 +223,7 @@ async function renderHomePage() {
 
         ${renderMovieRow('Trending Now', trending.results)}
         ${renderMovieRow('Popular Movies', popular.results)}
-        
+
         <div style="text-align: center; margin: 60px 0;">
             <a href="#movies" class="btn" style="border: 1px solid var(--primary); color: var(--primary);">Browse All Movies</a>
         </div>
@@ -247,7 +263,7 @@ async function renderCatalogPage(type) {
 function createCard(movie) {
     if (!movie.poster_path) return '';
     const isTv = movie.name ? true : false; // simplistic check
-    const link = isTv ? `#` : `#movie/${movie.id}`; // TV Details not fully implemented, linking to # for now
+    const link = isTv ? `#tv/${movie.id}` : `#movie/${movie.id}`;
 
     return `
         <div class="movie-card" onclick="window.location.hash='${link}'">
@@ -278,33 +294,40 @@ function renderMovieRow(title, movies) {
 }
 
 // 3. Details Page
-async function renderDetailsPage(id) {
+async function renderDetailsPage(id, type = 'movie') {
     app.innerHTML = '<div class="loading-spinner"></div>';
-    const movie = await api.getDetails(id);
+    const item = await api.getDetails(id, type);
 
-    if (!movie) return;
+    if (!item) return;
+
+    const isMovie = type === 'movie';
+    const title = item.title || item.name;
+    const releaseDate = isMovie ? item.release_date : item.first_air_date;
+    const runtime = isMovie ? `${item.runtime} min` : `${item.number_of_seasons} Seasons`;
+    const watchLink = isMovie ? `#watch/${item.id}` : `#watch/tv/${item.id}/1/1`; // Default to S1E1 for TV
 
     app.innerHTML = `
         <div class="hero" style="height: 60vh;">
-            <img src="${CONFIG.IMAGE_BASE_URL}${movie.backdrop_path}" class="hero-backdrop">
+            <img src="${CONFIG.IMAGE_BASE_URL}${item.backdrop_path}" class="hero-backdrop">
             <div class="hero-content">
-                <h1 class="hero-title">${movie.title}</h1>
+                <h1 class="hero-title">${title}</h1>
                 <div class="hero-meta">
-                    <span>${movie.release_date.split('-')[0]}</span>
-                    <span>${movie.runtime} min</span>
-                    <span class="rating"><i class="fas fa-star"></i> ${movie.vote_average.toFixed(1)}</span>
+                    <span>${(releaseDate || '').split('-')[0]}</span>
+                    <span>${runtime}</span>
+                    <span class="rating"><i class="fas fa-star"></i> ${item.vote_average.toFixed(1)}</span>
                 </div>
                 <div class="genres" style="margin-bottom: 20px; color: var(--text-gray);">
-                    ${movie.genres.map(g => g.name).join(', ')}
+                    ${item.genres.map(g => g.name).join(', ')}
                 </div>
-                <p class="hero-overview">${movie.overview}</p>
-                <a href="#watch/${movie.id}" class="btn btn-primary"><i class="fas fa-play"></i> Watch Movie</a>
+                <p class="hero-overview">${item.overview}</p>
+                <a href="${watchLink}" class="btn btn-primary"><i class="fas fa-play"></i> Watch ${isMovie ? 'Movie' : 'Show'}</a>
+                <a href="#download/${type}/${id}" class="btn" style="background: rgba(255,255,255,0.1); color: white; margin-left: 10px;"><i class="fas fa-download"></i> Download</a>
             </div>
         </div>
-        
+
         <div class="player-container">
             <!-- Recommendations -->
-            ${renderMovieRow('You May Also Like', movie.similar.results.slice(0, 6))}
+            ${renderMovieRow('You May Also Like', item.similar.results.slice(0, 6))}
         </div>
     `;
 }
@@ -327,12 +350,14 @@ async function renderWatchPage(id) {
             </div>
 
             <div class="video-wrapper">
-                <!-- Sandbox attribute blocks popups and top-level navigation -->
-                <iframe id="videoIframe" 
-                        src="${currentServer.url(id)}" 
-                        allowfullscreen 
-                        scrolling="no" 
+                <!-- Stealth Sandbox: Block popups but allow scripts/forms/presentation.
+                     No-referrer policy helps avoid detection by some providers. -->
+                <iframe id="videoIframe"
+                        src="${currentServer.url(id)}"
+                        allowfullscreen
+                        scrolling="no"
                         style="background: #000;"
+                        referrerpolicy="no-referrer"
                         sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-presentation">
                 </iframe>
             </div>
@@ -418,4 +443,168 @@ async function renderSearchPage(query) {
 
     const filtered = results.results.filter(item => item.media_type === 'movie' || item.media_type === 'tv');
     app.innerHTML = renderMovieRow(`Search Results for "${query}"`, filtered);
+}
+
+// 6. Download Page
+async function renderDownloadPage(type, id) {
+    app.innerHTML = '<div class="loading-spinner"></div>';
+    const item = await api.getDetails(id, type);
+
+    if (!item) return;
+
+    let contentHtml = '';
+
+    if (type === 'movie') {
+        contentHtml = `
+            <div class="download-section">
+                <div class="download-card">
+                    <h2>${item.title}</h2>
+                    <p class="quality-badge">4K HDR</p>
+                    <div class="download-options">
+                         <a href="#transfer/movie/${id}" class="download-btn"><i class="fas fa-download"></i> Server 1 (Fastest) - 1080p</a>
+                         <a href="#transfer/movie/${id}" class="download-btn secondary"><i class="fas fa-download"></i> Server 2 (Backup) - 720p</a>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        // TV Show Logic
+        const seasons = item.seasons.filter(s => s.season_number > 0); // Skip specials
+
+        // Default to Season 1
+        contentHtml = `
+            <div class="download-section">
+                <h2>${item.name}</h2>
+                <div class="season-selector">
+                    <label>Select Season:</label>
+                    <select id="seasonSelect" onchange="loadSeasonEpisodes('${id}', this.value)">
+                        ${seasons.map(s => `<option value="${s.season_number}">Season ${s.season_number}</option>`).join('')}
+                    </select>
+                </div>
+                <div id="episodesList" class="episodes-list">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+        `;
+
+        setTimeout(() => window.loadSeasonEpisodes(id, seasons[0]?.season_number || 1), 100);
+    }
+
+    app.innerHTML = `
+        <div class="container" style="padding-top: 100px; max-width: 800px; margin: 0 auto; color: white;">
+            <a href="#${type}/${id}" style="color: var(--text-gray); margin-bottom: 20px; display: block;"><i class="fas fa-arrow-left"></i> Back to Details</a>
+            <h1 class="section-title">Download Content</h1>
+            <div style="background: var(--bg-card); padding: 30px; border-radius: 16px;">
+                <div style="display: flex; gap: 20px; margin-bottom: 30px;">
+                    <img src="${CONFIG.POSTER_BASE_URL}${item.poster_path}" style="width: 100px; border-radius: 8px;">
+                    <div>
+                        <h2 style="margin: 0 0 10px 0;">${item.title || item.name}</h2>
+                        <span class="rating"><i class="fas fa-star"></i> ${item.vote_average.toFixed(1)}</span>
+                    </div>
+                </div>
+                ${contentHtml}
+            </div>
+        </div>
+    `;
+}
+
+// Global function for TV Season loading
+window.loadSeasonEpisodes = async (tvId, seasonNum) => {
+    const list = document.getElementById('episodesList');
+    list.innerHTML = '<div class="loading-spinner"></div>';
+
+    const seasonData = await api.getSeason(tvId, seasonNum);
+
+    if (!seasonData || !seasonData.episodes) {
+        list.innerHTML = '<p>Error loading episodes.</p>';
+        return;
+    }
+
+    list.innerHTML = `
+        <div style="margin-top: 20px;">
+            <a href="#transfer/tv/${tvId}/${seasonNum}" class="download-btn full-season" style="background: var(--primary); display: block; text-align: center; margin-bottom: 20px;">
+                <i class="fas fa-download"></i> Download Complete Season ${seasonNum}
+            </a>
+            ${seasonData.episodes.map(ep => `
+                <div class="episode-item" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <div>
+                        <strong>Ep ${ep.episode_number}: ${ep.name}</strong>
+                    </div>
+                    <a href="#transfer/tv/${tvId}/${seasonNum}/${ep.episode_number}" class="btn-sm" style="color: var(--primary); border: 1px solid var(--primary); padding: 5px 15px; border-radius: 4px; text-decoration: none;">
+                        <i class="fas fa-download"></i>
+                    </a>
+                </div>
+            `).join('')}
+        </div>
+    `;
+};
+
+// 7. Transfer Page (Simulation)
+async function renderTransferPage(type, id, season, episode) {
+    app.innerHTML = '<div class="loading-spinner"></div>';
+
+    // Simulate finding item details
+    const item = await api.getDetails(id, type);
+    const title = item.title || item.name;
+    const subTitle = type === 'tv'
+        ? (episode ? `Season ${season} Episode ${episode}` : `Complete Season ${season}`)
+        : '4K HDR Remux';
+
+    app.innerHTML = `
+        <div class="transfer-container" style="height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #1a0b2e 0%, #000 100%);">
+            <div class="transfer-box" style="text-align: center; max-width: 500px; width: 90%; background: var(--bg-card); padding: 40px; border-radius: 20px; border: 1px solid var(--primary); box-shadow: 0 0 50px rgba(157, 78, 221, 0.3);">
+                <i class="fas fa-satellite-dish fa-spin" style="font-size: 4rem; color: var(--primary); margin-bottom: 30px;"></i>
+                <h2 style="margin-bottom: 10px;">Establishing Secure Connection...</h2>
+                <p style="color: var(--text-gray); margin-bottom: 30px;">Please wait while we locate the best server for you.</p>
+
+                <div class="progress-bar" style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-bottom: 20px;">
+                    <div class="progress-fill" style="width: 0%; height: 100%; background: var(--primary); transition: width 0.5s ease;"></div>
+                </div>
+
+                <div id="transferStatus" style="font-family: monospace; color: #4cd137; font-size: 0.9rem; min-height: 20px;">Initializing...</div>
+            </div>
+        </div>
+    `;
+
+    // Simulation Sequence
+    const status = document.getElementById('transferStatus');
+    const fill = document.querySelector('.progress-fill');
+
+    const steps = [
+        { pct: 20, text: "Handshaking with satellite..." },
+        { pct: 40, text: `Locating "${title}"...` },
+        { pct: 60, text: "Bypassing region locks..." },
+        { pct: 80, text: "Allocating high-speed bandwidth..." },
+        { pct: 100, text: "Ready!" }
+    ];
+
+    let step = 0;
+    const interval = setInterval(() => {
+        if (step >= steps.length) {
+            clearInterval(interval);
+            showFinalDownload(title, subTitle);
+        } else {
+            fill.style.width = steps[step].pct + '%';
+            status.innerText = steps[step].text;
+            step++;
+        }
+    }, 800);
+}
+
+function showFinalDownload(title, subTitle) {
+    // Generate a search link as fallback since we don't host files
+    const searchUrl = `https://www.google.com/search?q=index+of+${encodeURIComponent(title)}+${encodeURIComponent(subTitle)}+download`;
+
+    document.querySelector('.transfer-box').innerHTML = `
+        <i class="fas fa-check-circle" style="font-size: 4rem; color: #4cd137; margin-bottom: 20px;"></i>
+        <h2 style="margin-bottom: 10px;">Download Ready</h2>
+        <p style="color: white; margin-bottom: 5px;">${title}</p>
+        <p style="color: var(--text-gray); margin-bottom: 30px; font-size: 0.9rem;">${subTitle}</p>
+
+        <a href="${searchUrl}" target="_blank" class="btn btn-primary" style="width: 100%; display: block; padding: 15px; font-size: 1.1rem; margin-bottom: 15px;">
+            <i class="fas fa-cloud-download-alt"></i> Start Download Now
+        </a>
+
+        <button onclick="window.history.back()" class="btn" style="background: transparent; border: 1px solid rgba(255,255,255,0.1); width: 100%;">Cancel</button>
+    `;
 }

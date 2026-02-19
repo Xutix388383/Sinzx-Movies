@@ -494,3 +494,17 @@ footer {
     margin-left: 8px;
     font-weight: 800;
 }
+
+/* Transfer Page Animation */
+.transfer-container {
+    animation: fadeIn 0.5s ease-out;
+}
+
+.progress-bar {
+    border: 1px solid rgba(157, 78, 221, 0.3);
+    box-shadow: 0 0 10px rgba(157, 78, 221, 0.1);
+}
+
+.progress-fill {
+    box-shadow: 0 0 15px var(--primary);
+}
