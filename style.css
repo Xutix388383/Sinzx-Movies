@@ -342,22 +342,36 @@ footer {
 
 /* Landing Page */
 .landing-page {
-    height: 100vh;
-    width: 100vw;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    /* Enable scrolling on small screens */
     display: flex;
     align-items: center;
+    /* Center vertically if space matches */
     justify-content: center;
     background: radial-gradient(circle at center, #1a0b2e 0%, #050505 100%);
     text-align: center;
     padding: 20px;
-    position: fixed;
-    top: 0;
-    left: 0;
     z-index: 2000;
+}
+
+/* Ensure content can scroll if taller than viewport */
+.landing-page::before {
+    content: '';
+    min-height: 100vh;
+    height: 100%;
 }
 
 .landing-content {
     max-width: 800px;
+    width: 100%;
+    margin: auto;
+    /* Center with flex/scroll combo */
+    padding: 40px 20px;
     animation: fadeUp 0.8s ease-out;
 }
 
@@ -381,18 +395,47 @@ footer {
 .landing-features {
     display: flex;
     justify-content: center;
-    gap: 30px;
+    gap: 20px;
     margin-bottom: 50px;
     flex-wrap: wrap;
 }
 
 .feature-item {
     background: rgba(255, 255, 255, 0.05);
-    padding: 15px 25px;
+    padding: 12px 20px;
     border-radius: 50px;
     font-weight: 600;
     color: var(--primary);
     border: 1px solid rgba(157, 78, 221, 0.3);
+    font-size: 0.95rem;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .landing-title {
+        font-size: 3rem;
+        /* Smaller title for mobile */
+    }
+
+    .landing-subtitle {
+        font-size: 1.1rem;
+    }
+
+    .landing-features {
+        gap: 15px;
+        margin-bottom: 40px;
+    }
+
+    .feature-item {
+        width: 100%;
+        /* Stack features or make them full width on very small screens? Let's keep them wrapped but maybe smaller padding */
+        width: auto;
+    }
+
+    .landing-logo {
+        max-width: 80% !important;
+        /* Prevent logo from being too huge */
+    }
 }
 
 /* Download Page Styles */
