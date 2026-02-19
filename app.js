@@ -103,52 +103,90 @@ function router() {
         const parts = hash.split('/');
         // #transfer/type/id/quality/season/episode
         renderTransferPage(parts[1], parts[2], parts[3], parts[4], parts[5]);
-    } else if (hash === '#adblock') { // New AdBlock Guide Route
+    } else if (hash === '#adblock') {
         renderAdBlockPage();
     } else if (hash.startsWith('#movie/')) {
-
-        // ... (existing code) ...
-
-        const heroMovie = trending.results[0];
-
-        let html = `
-        <header class="hero">
-            <img src="${CONFIG.IMAGE_BASE_URL}${heroMovie.backdrop_path}" class="hero-backdrop" alt="${heroMovie.title}">
-            <div class="hero-content">
-                <h1 class="hero-title" style="color: var(--primary); text-shadow: 0 0 20px rgba(157, 78, 221, 0.5);">${heroMovie.title || heroMovie.name}</h1>
-                <div class="hero-meta">
-                    <span>${(heroMovie.release_date || heroMovie.first_air_date || '').split('-')[0]}</span>
-                    <span class="rating"><i class="fas fa-star"></i> ${heroMovie.vote_average.toFixed(1)}</span>
-                </div>
-                <p class="hero-overview">${heroMovie.overview}</p>
-                <div class="hero-actions">
-                    <a href="#watch/${heroMovie.id}" class="btn btn-primary"><i class="fas fa-play"></i> Watch Now</a>
-                    <a href="#movie/${heroMovie.id}" class="btn" style="background: rgba(255,255,255,0.1); color: white;">More Info</a>
-                </div>
-            </div>
-        </header>
-
-        <!-- Ad Blocker Warning Banner -->
-        <div style="background: linear-gradient(90deg, #ff9f43, #ee5253); padding: 15px; text-align: center; margin: 20px auto; max-width: var(--container-width); border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 15px; color: white; font-weight: bold; box-shadow: 0 5px 15px rgba(238, 82, 83, 0.3);">
-            <i class="fas fa-shield-alt" style="font-size: 1.5rem;"></i>
-            <span>Pro Tip: Streaming servers may show ads. Use an Ad Blocker for the best experience!</span>
-            <a href="#adblock" class="btn" style="background: white; color: #ee5253; padding: 8px 20px; font-size: 0.9rem; border: none;">Get Protected</a>
-        </div>
-
-        ${renderMovieRow('Trending Now', trending.results)}
-        ${renderMovieRow('Popular Movies', popular.results)}
-
-        <div style="text-align: center; margin: 60px 0;">
-            <a href="#movies" class="btn" style="border: 1px solid var(--primary); color: var(--primary);">Browse All Movies</a>
-        </div>
-    `;
-
-        app.innerHTML = html;
+        renderDetailsPage(hash.split('/')[1], 'movie');
+    } else if (hash.startsWith('#tv/')) {
+        renderDetailsPage(hash.split('/')[1], 'tv');
+    } else if (hash.startsWith('#search/')) {
+        renderSearchPage(decodeURIComponent(hash.split('/')[1]));
+    } else if (hash === '#movies') {
+        renderCatalogPage('movie');
+    } else if (hash === '#tv') {
+        renderCatalogPage('tv');
+    } else if (hash === '#install') {
+        renderInstallPage();
+    } else if (hash === '#home') {
+        renderHomePage();
+    } else {
+        renderWelcomePage();
     }
 
-    // New AdBlock Guide Page
-    function renderAdBlockPage() {
-        app.innerHTML = `
+    window.scrollTo(0, 0);
+    document.querySelectorAll('.nav-links a').forEach(a => {
+        a.classList.remove('active');
+        if (a.getAttribute('href') === hash) a.classList.add('active');
+    });
+}
+
+window.addEventListener('hashchange', router);
+window.addEventListener('load', router);
+
+// --- Component Renderers ---
+
+function renderWelcomePage() {
+    app.style.display = 'none';
+    document.querySelector('.navbar').style.display = 'none';
+    let landing = document.getElementById('landing-page');
+    if (!landing) {
+        landing = document.createElement('div');
+        landing.id = 'landing-page';
+        landing.className = 'landing-page';
+        document.body.appendChild(landing);
+    }
+    landing.style.display = 'flex';
+    landing.innerHTML = `
+        <div class="landing-content">
+            <img src="logo.png" alt="Ethans Pirate Bay" class="landing-logo" style="max-width: 600px; width: 100%; height: auto; margin-bottom: 20px;">
+            <p class="landing-subtitle">Premium Free Streaming. Without Limits.</p>
+            <div class="landing-features">
+                <div class="feature-item"><i class="fas fa-bolt"></i> Super Fast</div>
+                <div class="feature-item"><i class="fas fa-ban"></i> Ad-Free Experience</div>
+                <div class="feature-item"><i class="fas fa-tv"></i> Smart TV Ready</div>
+                <div class="feature-item"><i class="fas fa-sync"></i> 24/7 Updates</div>
+            </div>
+            <a href="#home" class="btn btn-primary" style="padding: 20px 50px; font-size: 1.5rem;"><i class="fas fa-play"></i> Enter Site</a>
+            <p style="margin-top: 50px; color: var(--text-muted); font-size: 0.8rem;">Made by <strong>Ethan</strong>.<br>Public & Free Forever.</p>
+        </div>
+    `;
+}
+
+function renderInstallPage() {
+    app.innerHTML = `
+        <div class="container" style="padding-top: 100px; max-width: 1000px; margin: 0 auto; color: white;">
+            <h1 class="section-title" style="text-align: center;">How to Install App</h1>
+            <div class="install-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin-top: 40px;">
+                <div class="install-card" style="background: var(--bg-card); padding: 30px; border-radius: 16px;">
+                    <h2><i class="fab fa-apple"></i> iOS</h2>
+                    <p>Safari > Share > Add to Home Screen</p>
+                </div>
+                <div class="install-card" style="background: var(--bg-card); padding: 30px; border-radius: 16px;">
+                    <h2><i class="fab fa-android"></i> Android</h2>
+                    <p>Chrome > Menu > Install App</p>
+                </div>
+                <div class="install-card" style="background: var(--bg-card); padding: 30px; border-radius: 16px;">
+                    <h2><i class="fas fa-tv"></i> Smart TV</h2>
+                    <p>Bookmark via internal browser or cast from phone.</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Ensure this function is defined at the top level
+function renderAdBlockPage() {
+    app.innerHTML = `
         <div class="container" style="padding-top: 100px; max-width: 1000px; margin: 0 auto; color: white;">
             <div style="text-align: center; margin-bottom: 50px;">
                 <i class="fas fa-shield-virus" style="font-size: 4rem; color: var(--primary); margin-bottom: 20px;"></i>
@@ -217,83 +255,6 @@ function router() {
             </div>
         </div>
     `;
-    }
-    renderDetailsPage(hash.split('/')[1], 'movie');
-} else if (hash.startsWith('#tv/')) {
-    renderDetailsPage(hash.split('/')[1], 'tv');
-} else if (hash.startsWith('#search/')) {
-    renderSearchPage(decodeURIComponent(hash.split('/')[1]));
-} else if (hash === '#movies') {
-    renderCatalogPage('movie');
-} else if (hash === '#tv') {
-    renderCatalogPage('tv');
-} else if (hash === '#install') {
-    renderInstallPage();
-} else if (hash === '#home') {
-    renderHomePage();
-} else {
-    renderWelcomePage();
-}
-
-window.scrollTo(0, 0);
-document.querySelectorAll('.nav-links a').forEach(a => {
-    a.classList.remove('active');
-    if (a.getAttribute('href') === hash) a.classList.add('active');
-});
-}
-
-window.addEventListener('hashchange', router);
-window.addEventListener('load', router);
-
-// --- Component Renderers ---
-
-function renderWelcomePage() {
-    app.style.display = 'none';
-    document.querySelector('.navbar').style.display = 'none';
-    let landing = document.getElementById('landing-page');
-    if (!landing) {
-        landing = document.createElement('div');
-        landing.id = 'landing-page';
-        landing.className = 'landing-page';
-        document.body.appendChild(landing);
-    }
-    landing.style.display = 'flex';
-    landing.innerHTML = `
-        <div class="landing-content">
-            <img src="logo.png" alt="Ethans Pirate Bay" class="landing-logo" style="max-width: 600px; width: 100%; height: auto; margin-bottom: 20px;">
-            <p class="landing-subtitle">Premium Free Streaming. Without Limits.</p>
-            <div class="landing-features">
-                <div class="feature-item"><i class="fas fa-bolt"></i> Super Fast</div>
-                <div class="feature-item"><i class="fas fa-ban"></i> Ad-Free Experience</div>
-                <div class="feature-item"><i class="fas fa-tv"></i> Smart TV Ready</div>
-                <div class="feature-item"><i class="fas fa-sync"></i> 24/7 Updates</div>
-            </div>
-            <a href="#home" class="btn btn-primary" style="padding: 20px 50px; font-size: 1.5rem;"><i class="fas fa-play"></i> Enter Site</a>
-            <p style="margin-top: 50px; color: var(--text-muted); font-size: 0.8rem;">Made by <strong>Ethan</strong>.<br>Public & Free Forever.</p>
-        </div>
-    `;
-}
-
-function renderInstallPage() {
-    app.innerHTML = `
-        <div class="container" style="padding-top: 100px; max-width: 1000px; margin: 0 auto; color: white;">
-            <h1 class="section-title" style="text-align: center;">How to Install App</h1>
-            <div class="install-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin-top: 40px;">
-                <div class="install-card" style="background: var(--bg-card); padding: 30px; border-radius: 16px;">
-                    <h2><i class="fab fa-apple"></i> iOS</h2>
-                    <p>Safari > Share > Add to Home Screen</p>
-                </div>
-                <div class="install-card" style="background: var(--bg-card); padding: 30px; border-radius: 16px;">
-                    <h2><i class="fab fa-android"></i> Android</h2>
-                    <p>Chrome > Menu > Install App</p>
-                </div>
-                <div class="install-card" style="background: var(--bg-card); padding: 30px; border-radius: 16px;">
-                    <h2><i class="fas fa-tv"></i> Smart TV</h2>
-                    <p>Bookmark via internal browser or cast from phone.</p>
-                </div>
-            </div>
-        </div>
-    `;
 }
 
 async function renderHomePage() {
@@ -315,6 +276,14 @@ async function renderHomePage() {
                 </div>
             </div>
         </header>
+
+         <!-- Ad Blocker Warning Banner -->
+        <div style="background: linear-gradient(90deg, #ff9f43, #ee5253); padding: 15px; text-align: center; margin: 20px auto; max-width: var(--container-width); border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 15px; color: white; font-weight: bold; box-shadow: 0 5px 15px rgba(238, 82, 83, 0.3);">
+            <i class="fas fa-shield-alt" style="font-size: 1.5rem;"></i>
+            <span>Pro Tip: Streaming servers may show ads. Use an Ad Blocker for the best experience!</span>
+            <a href="#adblock" class="btn" style="background: white; color: #ee5253; padding: 8px 20px; font-size: 0.9rem; border: none;">Get Protected</a>
+        </div>
+
         ${renderMovieRow('Trending Now', trending.results)}
         ${renderMovieRow('Popular Movies', popular.results)}
         <div style="text-align:center; margin: 50px;"><a href="#movies" class="btn">Browse All Movies</a></div>
