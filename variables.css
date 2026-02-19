@@ -1,28 +1,29 @@
 :root {
-    /* Color Palette - Premium Dark */
-    --bg-dark: #0f1014;
-    --bg-card: #181a20;
-    --bg-hover: #20222a;
-    
+    /* Color Palette - Ethans Pirate Bay (Purple/Black) */
+    --bg-dark: #050505;
+    --bg-card: #0f0f0f;
+    --bg-hover: #1a1a1a;
+
     /* Accents */
-    --primary: #00ff88; /* Vibrant Green from your screenshot reference */
-    --primary-hover: #00cc6a;
-    --secondary: #7b2cbf;
-    
+    --primary: #9d4edd;
+    /* Deep Purple */
+    --primary-hover: #c77dff;
+    --secondary: #e0aaff;
+
     /* Text */
     --text-white: #ffffff;
-    --text-gray: #a0a0a0;
+    --text-gray: #b3b3b3;
     --text-muted: #666666;
 
     /* Gradients */
-    --gradient-hero: linear-gradient(to top, #0f1014 0%, transparent 100%);
-    --gradient-overlay: linear-gradient(90deg, #0f1014 0%, transparent 100%);
+    --gradient-hero: linear-gradient(to top, #050505 0%, rgba(5, 5, 5, 0.8) 50%, transparent 100%);
+    --gradient-overlay: linear-gradient(90deg, #050505 0%, transparent 100%);
 
     /* Spacing & Layout */
     --container-width: 1400px;
     --header-height: 70px;
-    --border-radius: 12px;
-    
+    --border-radius: 16px;
+
     /* Typography */
     --font-heading: 'Outfit', sans-serif;
     --font-body: 'Inter', sans-serif;
