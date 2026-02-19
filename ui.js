@@ -219,7 +219,7 @@ export const UI = {
         </header>
         
         <div style="background: #222; padding: 10px; text-align: right; color: #aaa; font-size: 0.9rem;">
-            Logged in as <strong>${user.name}</strong> • <a href="#" onclick="Auth.logout()" style="color: white; margin-left:10px;">Switch User</a>
+            Logged in as <strong>${user.name}</strong> • <a href="#" onclick="event.preventDefault(); Auth.logout();" style="color: white; margin-left:10px;">Switch User</a>
         </div>
 
          <!-- Ad Blocker Warning Banner (Purple Theme) -->

@@ -2,6 +2,7 @@ export const Auth = {
     // Keys
     USERS_KEY: 'movie_users',
     CURRENT_USER_KEY: 'movie_current_user',
+    LAST_USER_KEY: 'movie_last_user',
 
     // Methods
     getUsers() {
@@ -29,8 +30,8 @@ export const Auth = {
         const user = users.find(u => u.name === username);
         if (user) {
             localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(user));
+            localStorage.setItem(this.LAST_USER_KEY, username);
             window.location.hash = '#home';
-            window.location.reload(); // Refresh to update UI
         } else {
             alert('User not found');
         }
@@ -38,12 +39,27 @@ export const Auth = {
 
     logout() {
         localStorage.removeItem(this.CURRENT_USER_KEY);
+        localStorage.removeItem(this.LAST_USER_KEY);
         window.location.hash = '#login';
-        window.location.reload();
     },
 
     getCurrentUser() {
         return JSON.parse(localStorage.getItem(this.CURRENT_USER_KEY));
+    },
+
+    // Auto-login: if a user previously logged in, restore their session
+    autoLogin() {
+        if (this.getCurrentUser()) return true; // already logged in
+        const lastUser = localStorage.getItem(this.LAST_USER_KEY);
+        if (lastUser) {
+            const users = this.getUsers();
+            const user = users.find(u => u.name === lastUser);
+            if (user) {
+                localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(user));
+                return true;
+            }
+        }
+        return false;
     },
 
     // History Logic

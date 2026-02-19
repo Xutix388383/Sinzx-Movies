@@ -1,4 +1,5 @@
 import { UI } from './ui.js';
+import { Auth } from './auth.js';
 
 const app = document.getElementById('main-content');
 const searchInput = document.getElementById('searchInput');
@@ -10,6 +11,13 @@ function router() {
     UI.clearHeroInterval();
 
     const hash = window.location.hash;
+
+    // Auto-login: if user previously logged in, restore session and skip login/welcome
+    const isLoggedIn = Auth.autoLogin();
+    if (isLoggedIn && (!hash || hash === '#welcome' || hash === '#login')) {
+        window.location.hash = '#home';
+        return;
+    }
 
     // Landing Logic
     const landing = document.getElementById('landing-page');
