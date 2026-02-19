@@ -248,6 +248,7 @@ export const UI = {
     async renderWatchPage(id, type = 'movie', season = 1, episode = 1) {
         app.innerHTML = '<div class="loading-spinner"></div>';
         const item = await api.getDetails(id, type);
+        window.currentServers = [...SERVERS];
 
         // Helper to generate iframe URL
         const getUrl = (srv) => {
@@ -325,21 +326,27 @@ export const UI = {
                 sorted.sort((a, b) => (a.type === 'Backup' && b.type !== 'Backup') ? -1 : 1);
             }
 
+            window.currentServers = sorted;
             sourceSelect.innerHTML = renderOptions(sorted);
 
             const newUrl = getUrl(sorted[0]);
             if (iframe.src !== newUrl) {
+                iframe.src = 'about:blank';
+                setTimeout(() => { iframe.src = newUrl; }, 50);
                 loader.style.display = 'flex';
-                iframe.src = newUrl;
             }
         });
 
         sourceSelect.addEventListener('change', (e) => {
             loader.style.display = 'flex';
-            // Robustly get URL from data attribute
-            const url = e.target.options[e.target.selectedIndex].dataset.url;
-            if (url) {
-                iframe.src = url;
+            const option = e.target.options[e.target.selectedIndex];
+            const url = option.getAttribute('data-url') || getUrl(window.currentServers[e.target.value]);
+
+            if (url && iframe.src !== url) {
+                iframe.src = 'about:blank';
+                setTimeout(() => { iframe.src = url; }, 50);
+            } else {
+                loader.style.display = 'none';
             }
         });
     },
