@@ -248,13 +248,20 @@ export const UI = {
     async renderWatchPage(id, type = 'movie', season = 1, episode = 1) {
         app.innerHTML = '<div class="loading-spinner"></div>';
         const item = await api.getDetails(id, type);
-        window.currentServers = [...SERVERS];
 
+        // Helper to generate iframe URL
         const getUrl = (srv) => {
             let url = srv.url(id);
             if (type === 'tv' && url.includes('vidsrc')) return url.replace('/movie/', '/tv/').replace(`/${id}`, `/${id}/${season}/${episode}`);
             if (type === 'tv' && url.includes('autoembed')) return url.replace('/movie/', '/tv/').replace(`/${id}`, `/${id}/${season}/${episode}`);
             return url;
+        };
+
+        // Helper to render options consistently
+        const renderOptions = (list) => {
+            return list.map((s, i) =>
+                `<option value="${i}" data-url="${getUrl(s)}">${s.name} ${s.isAdFree ? '[AD-FREE]' : ''} - ${s.type}</option>`
+            ).join('');
         };
 
         const html = `
@@ -276,7 +283,7 @@ export const UI = {
                     <div class="control-group" style="flex-grow: 1;">
                         <label>Select Source (${SERVERS.length} Available):</label>
                         <select id="sourceSelect" class="server-dropdown" style="width: 100%; padding: 10px; background: #222; color: white; border: 1px solid var(--primary); border-radius: 5px;">
-                            ${window.currentServers.map((s, i) => `<option value="${i}">${s.name} ${s.isAdFree ? '[AD-FREE]' : ''}</option>`).join('')}
+                            ${renderOptions(SERVERS)}
                         </select>
                     </div>
 
@@ -318,9 +325,7 @@ export const UI = {
                 sorted.sort((a, b) => (a.type === 'Backup' && b.type !== 'Backup') ? -1 : 1);
             }
 
-            sourceSelect.innerHTML = sorted.map((s, i) => {
-                return `<option value="${s.name}" data-url="${getUrl(s)}">${s.name} ${s.isAdFree ? '[AD-FREE]' : ''} - ${s.type}</option>`;
-            }).join('');
+            sourceSelect.innerHTML = renderOptions(sorted);
 
             const newUrl = getUrl(sorted[0]);
             if (iframe.src !== newUrl) {
@@ -331,11 +336,12 @@ export const UI = {
 
         sourceSelect.addEventListener('change', (e) => {
             loader.style.display = 'flex';
-            const url = e.target.options[e.target.selectedIndex].dataset.url || getUrl(window.currentServers[e.target.value]);
-            iframe.src = url;
+            // Robustly get URL from data attribute
+            const url = e.target.options[e.target.selectedIndex].dataset.url;
+            if (url) {
+                iframe.src = url;
+            }
         });
-
-        sortSelect.dispatchEvent(new Event('change'));
     },
 
     async renderDownloadPage(type, id) {
