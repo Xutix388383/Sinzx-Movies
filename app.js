@@ -90,7 +90,7 @@ function renderWelcomePage() {
     landing.style.display = 'flex';
     landing.innerHTML = `
         <div class="landing-content">
-            <img src="logo.png" alt="Ethans Pirate Bay" class="landing-logo" style="max-width: 600px; width: 100%; height: auto; margin-bottom: 20px;">
+            <img src="logo title.png" alt="Ethans Pirate Bay" class="landing-logo" style="max-width: 600px; width: 100%; height: auto; margin-bottom: 20px;">
             <p class="landing-subtitle">Premium Free Streaming. Without Limits.</p>
             
             <div class="landing-features">
