@@ -1,0 +1,53 @@
+:root {
+    /* Color Palette - Premium Dark */
+    --bg-dark: #0f1014;
+    --bg-card: #181a20;
+    --bg-hover: #20222a;
+    
+    /* Accents */
+    --primary: #00ff88; /* Vibrant Green from your screenshot reference */
+    --primary-hover: #00cc6a;
+    --secondary: #7b2cbf;
+    
+    /* Text */
+    --text-white: #ffffff;
+    --text-gray: #a0a0a0;
+    --text-muted: #666666;
+
+    /* Gradients */
+    --gradient-hero: linear-gradient(to top, #0f1014 0%, transparent 100%);
+    --gradient-overlay: linear-gradient(90deg, #0f1014 0%, transparent 100%);
+
+    /* Spacing & Layout */
+    --container-width: 1400px;
+    --header-height: 70px;
+    --border-radius: 12px;
+    
+    /* Typography */
+    --font-heading: 'Outfit', sans-serif;
+    --font-body: 'Inter', sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-white);
+    font-family: var(--font-body);
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.3s ease;
+}
+
+ul {
+    list-style: none;
+}
