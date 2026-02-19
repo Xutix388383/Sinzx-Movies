@@ -41,6 +41,8 @@ function router() {
         UI.renderTransferPage(parts[1], parts[2], parts[3], parts[4], parts[5]);
     } else if (hash === '#adblock') {
         UI.renderAdBlockPage();
+    } else if (hash === '#login') {
+        UI.renderLoginPage();
     } else if (hash.startsWith('#movie/')) {
         UI.renderDetailsPage(hash.split('/')[1], 'movie');
     } else if (hash.startsWith('#tv/')) {

@@ -1,6 +1,7 @@
 import { api } from './api.js';
 import { CONFIG } from './config.js';
 import { SERVERS } from './servers.js';
+import { Auth } from './auth.js';
 
 let app = document.getElementById('main-content');
 let heroInterval = null;
@@ -17,7 +18,47 @@ export const UI = {
         }
     },
 
+    renderLoginPage() {
+        app.innerHTML = `
+        <div class="container" style="padding-top: 100px; max-width: 500px; margin: 0 auto; color: white; text-align: center;">
+            <h1 class="section-title">Who is watching?</h1>
+            
+            <div id="user-list" style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-bottom: 40px;">
+                ${Auth.getUsers().map(u => `
+                    <div onclick="window.loginUser('${u.name}')" style="cursor: pointer; text-align: center;">
+                        <div style="width: 100px; height: 100px; background: #333; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin-bottom: 10px; border: 2px solid transparent; transition: border 0.3s;">
+                            ${u.name[0].toUpperCase()}
+                        </div>
+                        <span>${u.name}</span>
+                    </div>
+                `).join('')}
+                
+                <div onclick="document.getElementById('create-user-form').style.display='block'" style="cursor: pointer; text-align: center;">
+                    <div style="width: 100px; height: 100px; background: #222; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin-bottom: 10px; border: 2px solid #555;">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                    <span>Add Profile</span>
+                </div>
+            </div>
+
+            <div id="create-user-form" style="display: none; background: #222; padding: 20px; border-radius: 10px;">
+                <input type="text" id="new-username" placeholder="Name" style="padding: 10px; border-radius: 5px; border: none; width: 70%; margin-right: 10px;">
+                <button onclick="window.createUser()" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+        `;
+
+        // Globals for inline calls
+        window.loginUser = (name) => Auth.login(name);
+        window.createUser = () => {
+            const name = document.getElementById('new-username').value;
+            if (name) Auth.createUser(name);
+        };
+    },
+
     renderWelcomePage() {
+        // ... (Keep existing gatekeeper logic, but maybe redirect to login if gatekeeper passed?)
+        // For now, keep as is.
         app.style.display = 'none';
         document.querySelector('.navbar').style.display = 'none';
         let landing = document.getElementById('landing-page');
@@ -43,7 +84,7 @@ export const UI = {
 
             <div class="hero-actions" style="justify-content: center; gap: 20px; flex-wrap: wrap;">
                 <a href="#adblock" class="btn" style="background: #0984e3; color: white; padding: 15px 30px; font-size: 1.1rem;"><i class="fas fa-shield-alt"></i> Get AdBlocker</a>
-                <a href="#home" class="btn btn-primary" style="padding: 15px 30px; font-size: 1.1rem;"><i class="fas fa-check-circle"></i> I Have Downloaded It</a>
+                <a href="#login" class="btn btn-primary" style="padding: 15px 30px; font-size: 1.1rem;"><i class="fas fa-check-circle"></i> I Have Downloaded It</a>
             </div>
             
             <p style="margin-top: 30px; color: #666; font-size: 0.8rem;">Ethan's Pirate Bay • Public & Free Forever</p>
@@ -52,6 +93,7 @@ export const UI = {
     },
 
     renderInstallPage() {
+        // ... (No change)
         app.innerHTML = `
         <div class="container" style="padding-top: 100px; max-width: 1000px; margin: 0 auto; color: white;">
             <h1 class="section-title" style="text-align: center;">How to Install App</h1>
@@ -147,6 +189,14 @@ export const UI = {
 
     async renderHomePage() {
         app.innerHTML = '<div class="loading-spinner"></div>';
+
+        // Auth check
+        const user = Auth.getCurrentUser();
+        if (!user) {
+            window.location.hash = '#login';
+            return;
+        }
+
         const [trending, popular] = await Promise.all([api.getTrending(), api.getPopular()]);
         if (!trending) return;
 
@@ -167,6 +217,10 @@ export const UI = {
                 </div>
             </div>
         </header>
+        
+        <div style="background: #222; padding: 10px; text-align: right; color: #aaa; font-size: 0.9rem;">
+            Logged in as <strong>${user.name}</strong> • <a href="#" onclick="Auth.logout()" style="color: white; margin-left:10px;">Switch User</a>
+        </div>
 
          <!-- Ad Blocker Warning Banner (Purple Theme) -->
         <div style="background: linear-gradient(90deg, #6c5ce7, #a29bfe); padding: 15px; text-align: center; margin: 20px auto; max-width: var(--container-width); border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 15px; color: white; font-weight: bold; box-shadow: 0 5px 15px rgba(108, 92, 231, 0.3);">
@@ -174,11 +228,16 @@ export const UI = {
             <span>Pro Tip: Streaming servers may show ads. Use an Ad Blocker for the best experience!</span>
             <a href="#adblock" class="btn" style="background: white; color: #6c5ce7; padding: 8px 20px; font-size: 0.9rem; border: none;">Get Protected</a>
         </div>
-
+        
+        ${user.history && user.history.length > 0 ? createMovieRow(`Continue Watching (${user.name})`, user.history) : ''}
         ${createMovieRow('Trending Now', trending.results)}
         ${createMovieRow('Popular Movies', popular.results)}
         <div style="text-align:center; margin: 50px;"><a href="#movies" class="btn">Browse All Movies</a></div>
         `;
+
+        // Add logout global
+        window.Auth = Auth;
+
         app.innerHTML = html;
         startHeroSlider(trending.results);
     },
@@ -248,6 +307,19 @@ export const UI = {
     async renderWatchPage(id, type = 'movie', season = 1, episode = 1) {
         app.innerHTML = '<div class="loading-spinner"></div>';
         const item = await api.getDetails(id, type);
+        const user = Auth.getCurrentUser();
+
+        // Save to History
+        if (item) {
+            Auth.addToHistory({
+                id: id,
+                type: type,
+                title: type === 'tv' ? `${item.name} S${season}:E${episode}` : item.title,
+                poster_path: item.poster_path,
+                backdrop_path: item.backdrop_path
+            });
+        }
+
         window.currentServers = [...SERVERS];
 
         // Helper to generate iframe URL
