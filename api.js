@@ -50,6 +50,10 @@ class TMDB {
         return await this._fetch('/discover/movie', { with_genres: genreId, sort_by: 'popularity.desc' });
     }
 
+    async getSeason(tvId, seasonNumber) {
+        return await this._fetch(`/tv/${tvId}/season/${seasonNumber}`);
+    }
+
     async search(query) {
         return await this._fetch('/search/multi', { query });
     }
