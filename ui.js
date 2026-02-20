@@ -215,34 +215,7 @@ export const UI = {
         let joinRoomId = '';
         if (params) {
             const urlParams = new URLSearchParams(params);
-            if (urlParams.has('join')) {
-                joinRoomId = urlParams.get('join');
-
-                // Instant Join Logic
-                // If not hosting, and we have a join ID, try to join immediately
-                if (!Party.roomId) {
-                    console.log('Instant Join:', joinRoomId);
-                    // Generate guest name if needed
-                    const savedName = localStorage.getItem('party_username');
-                    const randomName = 'Guest-' + Math.floor(Math.random() * 1000);
-                    const finalName = savedName || randomName;
-
-                    // Show loading
-                    app.innerHTML = '<div class="loading-spinner"></div><p style="text-align:center;color:white;margin-top:20px">Joining Party...</p>';
-
-                    // Attempt Join
-                    try {
-                        await Party.joinRoom(joinRoomId, finalName);
-                        // Save name if it was generated? Maybe let user change it later.
-                        // For now, proceed.
-                        this.enterPartyRoom(joinRoomId, false);
-                        return; // Stop rendering
-                    } catch (e) {
-                        alert('Join Failed: ' + e);
-                        // Fall out to render normal page
-                    }
-                }
-            }
+            if (urlParams.has('join')) joinRoomId = urlParams.get('join');
         }
 
         // Username persistence
@@ -487,6 +460,30 @@ export const UI = {
     </div>
         </div >
     `;
+
+        // Instant Join Logic (Executed after HTML injection)
+        if (joinRoomId && !Party.roomId) {
+            console.log('Instant Join:', joinRoomId);
+            const savedName = localStorage.getItem('party_username');
+            const randomName = 'Guest-' + Math.floor(Math.random() * 1000);
+            const finalName = savedName || randomName;
+
+            // Optional: Show a loading overlay on top of the rendered page
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.id = 'party-loading-overlay';
+            loadingOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;';
+            loadingOverlay.innerHTML = '<div class="loading-spinner"></div><p style="margin-top:20px">Joining Party...</p>';
+            document.body.appendChild(loadingOverlay);
+
+            try {
+                await Party.joinRoom(joinRoomId, finalName);
+                this.enterPartyRoom(joinRoomId, Party.isHost);
+            } catch (e) {
+                alert('Join Failed: ' + e);
+            } finally {
+                if (loadingOverlay) loadingOverlay.remove();
+            }
+        }
     },
 
     startPartySelection() {
