@@ -215,7 +215,34 @@ export const UI = {
         let joinRoomId = '';
         if (params) {
             const urlParams = new URLSearchParams(params);
-            if (urlParams.has('join')) joinRoomId = urlParams.get('join');
+            if (urlParams.has('join')) {
+                joinRoomId = urlParams.get('join');
+
+                // Instant Join Logic
+                // If not hosting, and we have a join ID, try to join immediately
+                if (!Party.roomId) {
+                    console.log('Instant Join:', joinRoomId);
+                    // Generate guest name if needed
+                    const savedName = localStorage.getItem('party_username');
+                    const randomName = 'Guest-' + Math.floor(Math.random() * 1000);
+                    const finalName = savedName || randomName;
+
+                    // Show loading
+                    app.innerHTML = '<div class="loading-spinner"></div><p style="text-align:center;color:white;margin-top:20px">Joining Party...</p>';
+
+                    // Attempt Join
+                    try {
+                        await Party.joinRoom(joinRoomId, finalName);
+                        // Save name if it was generated? Maybe let user change it later.
+                        // For now, proceed.
+                        this.enterPartyRoom(joinRoomId, false);
+                        return; // Stop rendering
+                    } catch (e) {
+                        alert('Join Failed: ' + e);
+                        // Fall out to render normal page
+                    }
+                }
+            }
         }
 
         // Username persistence
@@ -415,12 +442,13 @@ export const UI = {
                 <!-- Host Controls (Media Selection) -->
                 <div id="host-search-area" style="display: none;">
                     <!-- Master Sync Controls -->
+                    <!-- Master Sync Controls -->
                      <div class="glass-card" style="padding: 15px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; justify-content: center; background: rgba(0,0,0,0.5);">
                         <span style="color: #aaa; font-size: 0.8rem; margin-right: 10px;">MASTER SYNC:</span>
-                        <button onclick="Party.sendSync('PLAY', 0); Party.sendMessage('System: Host pressed PLAY')" class="btn" style="padding: 5px 15px; background: #2ecc71;"><i class="fas fa-play"></i></button>
-                        <button onclick="Party.sendSync('PAUSE', 0); Party.sendMessage('System: Host pressed PAUSE')" class="btn" style="padding: 5px 15px; background: #e17055;"><i class="fas fa-pause"></i></button>
-                        <button onclick="Party.sendSync('SEEK', -10); Party.sendMessage('System: Host skipped -10s')" class="btn" style="padding: 5px 15px; background: #636e72;">-10s</button>
-                        <button onclick="Party.sendSync('SEEK', 10); Party.sendMessage('System: Host skipped +10s')" class="btn" style="padding: 5px 15px; background: #636e72;">+10s</button>
+                        <button onclick="Party.sendSync('MASTER_PLAY', 0); Party.sendMessage('System: Host pressed PLAY')" class="btn" style="padding: 5px 15px; background: #2ecc71;"><i class="fas fa-play"></i></button>
+                        <button onclick="Party.sendSync('MASTER_PAUSE', 0); Party.sendMessage('System: Host pressed PAUSE')" class="btn" style="padding: 5px 15px; background: #e17055;"><i class="fas fa-pause"></i></button>
+                        <button onclick="Party.sendSync('MASTER_SEEK', -10); Party.sendMessage('System: Host skipped -10s')" class="btn" style="padding: 5px 15px; background: #636e72;">-10s</button>
+                        <button onclick="Party.sendSync('MASTER_SEEK', 10); Party.sendMessage('System: Host skipped +10s')" class="btn" style="padding: 5px 15px; background: #636e72;">+10s</button>
                     </div>
 
                     <div class="glass-card" style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
@@ -663,6 +691,15 @@ export const UI = {
                 }
             } else if (data.action === 'SEEK') {
                 if (video.style.display !== 'none') video.currentTime = data.time;
+            }
+
+            // Master Controls (Relative/Blind)
+            else if (data.action === 'MASTER_PLAY') {
+                if (video.style.display !== 'none') video.play();
+            } else if (data.action === 'MASTER_PAUSE') {
+                if (video.style.display !== 'none') video.pause();
+            } else if (data.action === 'MASTER_SEEK') {
+                if (video.style.display !== 'none') video.currentTime += data.time;
             }
         });
 
