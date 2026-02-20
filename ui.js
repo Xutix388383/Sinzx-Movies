@@ -193,7 +193,22 @@ export const UI = {
         `;
     },
 
-    async renderWatchPartyPage() {
+    async renderWatchPartyPage(params) {
+        // Parse params if any
+        let joinRoomId = '';
+        if (params) {
+            const urlParams = new URLSearchParams(params);
+            if (urlParams.has('join')) joinRoomId = urlParams.get('join');
+        }
+
+        // Username persistence
+        const savedName = localStorage.getItem('party_username') || '';
+
+        // Helper to save username
+        window.savePartyUsername = (name) => {
+            if (name) localStorage.setItem('party_username', name);
+        };
+
         // Inject Premium Styles for Watch Party
         const styleId = 'watch-party-styles';
         if (!document.getElementById(styleId)) {
@@ -223,7 +238,7 @@ export const UI = {
                     border-radius: 16px;
                     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
                 }
-            <div id="party-landing" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+                /* Chat Bubbles */
                 .chat-bubble {
                     padding: 10px 15px;
                     border-radius: 15px;
@@ -279,13 +294,30 @@ export const UI = {
                 </p>
 
                 <div style="display: flex; gap: 30px; flex-wrap: wrap; justify-content: center;">
+                    
+                    <!-- Active Session Card (If Host/Joined) -->
+                    ${Party.roomId ? `
+                    <div class="glass-card" style="padding: 40px; width: 100%; max-width: 600px; text-align: left; border: 1px solid #6c5ce7; box-shadow: 0 0 20px rgba(108, 92, 231, 0.2);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <div style="font-size: 2rem; color: #a29bfe;"><i class="fas fa-satellite-dish"></i></div>
+                            <span style="background: #6c5ce7; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem;">LIVE NOW</span>
+                        </div>
+                        <h2 style="margin-bottom: 10px;">Current Session</h2>
+                        <p style="color: #ccc; font-size: 1rem; margin-bottom: 5px;">Room ID: <code style="color: white;">${Party.roomId}</code></p>
+                        <p style="color: #aaa; font-size: 0.9rem; margin-bottom: 25px;">You are currently in this room.</p>
+                        <button onclick="UI.enterPartyRoom('${Party.roomId}', ${Party.isHost})" class="btn btn-primary" style="width: 100%; box-shadow: 0 5px 15px rgba(108, 92, 231, 0.4);">
+                            <i class="fas fa-undo"></i> Return to Room
+                        </button>
+                    </div>
+                    ` : ''}
+
                     <!-- Host Card -->
                     <div class="glass-card" style="padding: 40px; width: 320px; text-align: left; transition: transform 0.3s ease;">
                         <div style="font-size: 2rem; color: #6c5ce7; margin-bottom: 20px;"><i class="fas fa-broadcast-tower"></i></div>
                         <h2 style="margin-bottom: 10px;">Host a Room</h2>
                         <p style="color: #aaa; font-size: 0.9rem; margin-bottom: 25px;">Create a private room and invite your friends to watch together.</p>
-                        <input type="text" id="hostName" placeholder="Enter your name" class="glass-input" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; margin-bottom: 15px;">
-                        <button onclick="UI.createParty()" class="btn btn-primary" style="width: 100%; box-shadow: 0 5px 15px rgba(108, 92, 231, 0.4);">
+                        <input type="text" id="hostName" value="${savedName}" placeholder="Enter your name" class="glass-input" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; margin-bottom: 15px;">
+                        <button onclick="window.savePartyUsername(document.getElementById('hostName').value); UI.createParty()" class="btn btn-primary" style="width: 100%; box-shadow: 0 5px 15px rgba(108, 92, 231, 0.4);">
                             <i class="fas fa-plus-circle"></i> Create Party
                         </button>
                     </div>
@@ -295,23 +327,28 @@ export const UI = {
                         <div style="font-size: 2rem; color: #fab1a0; margin-bottom: 20px;"><i class="fas fa-ticket-alt"></i></div>
                         <h2 style="margin-bottom: 10px;">Join a Room</h2>
                         <p style="color: #aaa; font-size: 0.9rem; margin-bottom: 25px;">Have a code? Enter it below to join an existing party.</p>
-                        <input type="text" id="joinName" placeholder="Enter your name" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; margin-bottom: 10px;">
-                        <input type="text" id="roomCode" placeholder="Room ID" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; margin-bottom: 15px;">
-                        <button onclick="UI.joinParty()" class="btn" style="width: 100%; background: #fab1a0; color: #2d3436; font-weight: bold;">
+                        <input type="text" id="joinName" value="${savedName}" placeholder="Enter your name" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; margin-bottom: 10px;">
+                        <input type="text" id="roomCode" value="${joinRoomId}" placeholder="Room ID" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; margin-bottom: 15px;">
+                        <button onclick="window.savePartyUsername(document.getElementById('joinName').value); UI.joinParty()" class="btn" style="width: 100%; background: #fab1a0; color: #2d3436; font-weight: bold;">
                             <i class="fas fa-sign-in-alt"></i> Join Party
                         </button>
                     </div>
                 </div>
 
-                <!-- Recent Rooms (History) -->
+                <!-- Recent Rooms (History - Guests Only) -->
             <div style="margin-top: 50px; width: 100%; max-width: 800px;">
                 <h2 style="font-size: 1.5rem; margin-bottom: 20px; color: #ccc;">Recent Rooms</h2>
-                ${Party.history.length === 0 ? '<p style="color: #666;">No recent rooms found.</p>' : `
+                ${Party.history.filter(h => h.role !== 'Host').length === 0 ? '<p style="color: #666;">No recent rooms found.</p>' : `
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
-                        ${Party.history.map(room => `
-                        <div class="glass-card" style="padding: 15px; cursor: pointer; border: 1px solid rgba(108, 92, 231, 0.2);" onclick="document.getElementById('roomCode').value='${room.id}'; document.getElementById('joinName').focus();">
+                        ${Party.history
+                    .filter(h => h.role !== 'Host')
+                    .map(room => `
+                        <div class="glass-card" style="padding: 15px; cursor: pointer; border: 1px solid rgba(108, 92, 231, 0.2); transition: transform 0.2s;" 
+                             onclick="UI.joinParty('${room.id}')"
+                             onmouseover="this.style.transform='scale(1.03)'" 
+                             onmouseout="this.style.transform='scale(1)'">
                              <div style="color: #6c5ce7; font-weight: bold; margin-bottom: 5px; overflow: hidden; text-overflow: ellipsis;">${room.id}</div>
-                             <div style="font-size: 0.8rem; color: #aaa;">Role: ${room.role}</div>
+                             <div style="font-size: 0.8rem; color: #aaa;">Joined as Guest</div>
                              <div style="font-size: 0.7rem; color: #666;">${new Date(room.timestamp).toLocaleDateString()}</div>
                         </div>
                         `).join('')}
@@ -409,9 +446,9 @@ export const UI = {
         } catch (e) { alert('Error creating room: ' + e); }
     },
 
-    async joinParty() {
+    async joinParty(idOverride) {
         const name = document.getElementById('joinName').value || 'Guest';
-        const id = document.getElementById('roomCode').value;
+        const id = idOverride || document.getElementById('roomCode').value;
         if (!id) return alert('Please enter a Room ID');
         try {
             await Party.joinRoom(id, name);
@@ -419,17 +456,34 @@ export const UI = {
         } catch (e) { alert('Error joining room: ' + e); }
     },
 
-    enterPartyRoom(id, isHost) {
+    enterPartyRoom(roomId, isHost) {
+        // Hide Landing, Show Room
         document.getElementById('party-landing').style.display = 'none';
-        document.getElementById('party-room').style.display = 'block';
-        document.getElementById('currentRoomId').innerText = id; // Changed from .value to .innerText
+        const room = document.getElementById('party-room');
+        room.style.display = 'grid'; // Grid layout for desktop
 
-        if (isHost) {
-            document.getElementById('host-controls').style.display = 'block';
-            document.getElementById('host-search-area').style.display = 'block';
-        }
+        document.getElementById('currentRoomId').innerText = roomId;
+
+        // Update Copy Button to Copy Link
+        const copyBtn = document.querySelector('#party-room .fa-copy').parentElement;
+        copyBtn.onclick = () => {
+            const link = `${window.location.origin}/#watchparty?join=${roomId}`;
+            navigator.clipboard.writeText(link);
+            // Visual feedback
+            const originalHTML = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+            setTimeout(() => copyBtn.innerHTML = originalHTML, 1500);
+        };
 
         this.setupPartyEvents(isHost);
+
+        // Show Host Controls if host
+        if (isHost) {
+            const controls = document.getElementById('host-controls');
+            if (controls) controls.style.display = 'block';
+            const searchArea = document.getElementById('host-search-area');
+            if (searchArea) searchArea.style.display = 'block';
+        }
 
         // Restore state if returning
         if (Party.currentMedia) {
@@ -507,6 +561,13 @@ export const UI = {
                 // Ideally this should be a direct message to the new peer, but broadcast works for now
                 setTimeout(() => {
                     Party.sendSync('CHANGE_MEDIA', 0, Party.currentMedia);
+
+                    // Also sync time/state if playing (for video elements)
+                    if (video && !video.paused) {
+                        setTimeout(() => {
+                            Party.sendSync('PLAY', video.currentTime);
+                        }, 500);
+                    }
                 }, 1000);
             }
         });

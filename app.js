@@ -66,7 +66,8 @@ function router() {
     } else if (hash.startsWith('#channel/')) {
         UI.renderChannelDetailsPage(hash.split('/')[1]);
     } else if (hash.startsWith('#watchparty')) {
-        UI.renderWatchPartyPage();
+        const params = hash.split('?')[1];
+        UI.renderWatchPartyPage(params);
     } else if (hash.startsWith('#search/')) {
         UI.renderSearchPage(decodeURIComponent(hash.split('/')[1]));
     } else if (hash === '#movies') {
