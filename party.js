@@ -7,6 +7,11 @@ export class PartyManager {
         this.isHost = false;
         this.username = 'User-' + Math.floor(Math.random() * 1000);
         this.color = this.getRandomColor();
+
+        // State
+        this.isSelectingMedia = false;
+        this.currentMedia = null;
+
         this.callbacks = {
             onMessage: () => { },
             onSync: () => { },

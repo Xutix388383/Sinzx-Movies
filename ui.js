@@ -12,6 +12,11 @@ export const UI = {
         app = element;
     },
 
+    toggleMobileMenu() {
+        const nav = document.querySelector('.nav-links');
+        nav.classList.toggle('active');
+    },
+
     clearHeroInterval() {
         if (heroInterval) {
             clearInterval(heroInterval);
@@ -319,26 +324,30 @@ export const UI = {
                     <!-- Player Section -->
                     <div style="display: flex; flex-direction: column; gap: 20px;">
                         <div class="glass-card player-glow" style="flex: 1; overflow: hidden; position: relative; background: #000; display: flex; align-items: center; justify-content: center;">
-                            <video id="party-video" controls style="width: 100%; height: 100%; object-fit: contain;"></video>
+                            <!-- Video Player (Direct) -->
+                            <video id="party-video" controls style="width: 100%; height: 100%; object-fit: contain; display: none;"></video>
+                            
+                            <!-- IFrame Player (Embeds) -->
+                            <iframe id="party-iframe" style="width: 100%; height: 100%; border: none; display: none;" allowfullscreen></iframe>
                             
                             <!-- Placeholder / Empty State -->
                             <div id="party-placeholder" style="position: absolute; text-align: center; color: rgba(255,255,255,0.5);">
                                 <i class="fas fa-film" style="font-size: 5rem; margin-bottom: 20px; opacity: 0.5;"></i>
                                 <h2 style="font-weight: 300;">Waiting for media...</h2>
-                                <p id="host-controls" style="display:none; color: #a29bfe; margin-top: 10px;">You are the host.<br>Use the search below to select content.</p>
+                                <p id="host-controls" style="display:none; color: #a29bfe; margin-top: 10px;">You are the host.<br>Click below to select content from library.</p>
                             </div>
                         </div>
 
-                        <!-- Host Search (Only visible to host) -->
+                        <!-- Host Controls (Media Selection) -->
                         <div id="host-search-area" style="display: none;">
-                            <div class="glass-card" style="padding: 20px;">
-                                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                                    <input type="text" id="partySearch" placeholder="Search for movies or TV shows..." style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white;">
-                                    <button onclick="UI.searchPartyMedia()" class="btn btn-primary"><i class="fas fa-search"></i> Search</button>
+                            <div class="glass-card" style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <h3 style="margin-bottom: 5px;">Select Content</h3>
+                                    <p style="color: #aaa; font-size: 0.9em;">Browse the library and bring a movie/show here.</p>
                                 </div>
-                                <div id="party-results" class="movie-grid" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; max-height: 200px; overflow-y: auto;">
-                                    <!-- Results injected here -->
-                                </div>
+                                <button onclick="UI.startPartySelection()" class="btn btn-primary" style="box-shadow: 0 5px 15px rgba(108, 92, 231, 0.4);">
+                                    <i class="fas fa-search"></i> Browse Library
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -369,6 +378,14 @@ export const UI = {
         `;
     },
 
+    startPartySelection() {
+        if (!Party.isHost) return alert('Only the host can select media.');
+        Party.isSelectingMedia = true;
+        window.location.hash = '#home';
+        // Maybe show a toast or modal?
+        alert('Go find a movie/show and click "Watch with Party"!');
+    },
+
     async createParty() {
         const name = document.getElementById('hostName').value || 'Host';
         try {
@@ -390,7 +407,7 @@ export const UI = {
     enterPartyRoom(id, isHost) {
         document.getElementById('party-landing').style.display = 'none';
         document.getElementById('party-room').style.display = 'block';
-        document.getElementById('currentRoomId').value = id;
+        document.getElementById('currentRoomId').innerText = id; // Changed from .value to .innerText
 
         if (isHost) {
             document.getElementById('host-controls').style.display = 'block';
@@ -398,6 +415,32 @@ export const UI = {
         }
 
         this.setupPartyEvents(isHost);
+
+        // Restore state if returning
+        if (Party.currentMedia) {
+            this.updatePartyPlayer(Party.currentMedia);
+        }
+    },
+
+    updatePartyPlayer(state) {
+        const video = document.getElementById('party-video');
+        const iframe = document.getElementById('party-iframe');
+        const placeholder = document.getElementById('party-placeholder');
+
+        placeholder.style.display = 'none';
+
+        if (state.type === 'iframe') {
+            video.style.display = 'none';
+            video.pause();
+            iframe.style.display = 'block';
+            if (iframe.src !== state.src) iframe.src = state.src;
+        } else {
+            iframe.style.display = 'none';
+            iframe.src = '';
+            video.style.display = 'block';
+            if (video.src !== state.src) video.src = state.src;
+            // video.play(); // Auto-play might be blocked
+        }
     },
 
     setupPartyEvents(isHost) {
@@ -443,7 +486,14 @@ export const UI = {
 
         // User Join/List Events
         Party.on('onUserJoin', (name) => {
-            // Optional: Update a user list UI if we had one in the sidebar
+            if (isHost && Party.currentMedia) {
+                // Determine duration for sync? Iframes can't
+                // Just resend current media state to new joiner
+                // Ideally this should be a direct message to the new peer, but broadcast works for now
+                setTimeout(() => {
+                    Party.sendSync('CHANGE_MEDIA', 0, Party.currentMedia);
+                }, 1000);
+            }
         });
 
         Party.on('onSync', (data) => {
@@ -454,10 +504,8 @@ export const UI = {
             const timeDiff = Math.abs(video.currentTime - data.time);
 
             if (data.action === 'CHANGE_MEDIA') {
-                video.src = data.state.src;
-                // video.poster = data.state.poster;
-                document.getElementById('party-placeholder').style.display = 'none';
-                video.play();
+                this.updatePartyPlayer(data.state);
+                Party.currentMedia = data.state; // Update local state for clients too
 
                 // System notification in chat
                 const div = document.createElement('div');
@@ -468,13 +516,17 @@ export const UI = {
                 chat.scrollTop = chat.scrollHeight;
 
             } else if (data.action === 'PLAY') {
-                if (video.paused) video.play();
-                if (timeDiff > 2) video.currentTime = data.time;
+                if (video.style.display !== 'none') {
+                    if (video.paused) video.play();
+                    if (timeDiff > 2) video.currentTime = data.time;
+                }
             } else if (data.action === 'PAUSE') {
-                video.pause();
-                video.currentTime = data.time; // Snap to exact time
+                if (video.style.display !== 'none') {
+                    video.pause();
+                    video.currentTime = data.time;
+                }
             } else if (data.action === 'SEEK') {
-                video.currentTime = data.time;
+                if (video.style.display !== 'none') video.currentTime = data.time;
             }
         });
 
@@ -498,46 +550,6 @@ export const UI = {
             Party.sendMessage(text);
             input.value = '';
         }
-    },
-
-    async searchPartyMedia() {
-        const query = document.getElementById('partySearch').value;
-        if (!query) return;
-
-        // Show loading state?
-        const grid = document.getElementById('party-results');
-        grid.innerHTML = '<div class="loading-spinner"></div>';
-
-        const res = await api.search(query);
-        grid.innerHTML = res.results.filter(x => x.media_type === 'movie' || x.media_type === 'tv').map(m => `
-            <div class="movie-card" onclick="UI.selectPartyMedia('${m.id}', '${m.media_type}', '${escape(m.title || m.name)}', '${m.poster_path}')">
-                 <div class="poster-wrapper"><img src="${CONFIG.POSTER_BASE_URL}${m.poster_path}"></div>
-                 <div class="movie-info"><h3>${m.title || m.name}</h3></div>
-            </div>
-        `).join('');
-    },
-
-    async selectPartyMedia(id, type, title, poster) {
-        // Mock Video URL for Demo purposes or use a real embed if allowed by headers (often blocked by X-Frame-Options)
-        // Since we are using <video>, we need a direct MP4.
-        // We will default to a demo video to prove syncing works, 
-        // OR we try to construct a stream URL if we had a direct-link provider.
-        // For this task, proof of sync concept is key.
-
-        const mockUrl = 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-
-        // Update Host UI
-        const video = document.getElementById('party-video');
-        video.src = mockUrl;
-        document.getElementById('party-placeholder').style.display = 'none';
-        video.play();
-
-        // Broadcast to Clients
-        // Send a simpler object to avoid complex nesting issues in serialization
-        Party.sendSync('CHANGE_MEDIA', 0, { src: mockUrl, poster: poster });
-
-        // Send chat notification
-        Party.sendMessage(`Changed media to: ${unescape(title)}`);
     },
 
     async renderHomePage() {
@@ -691,6 +703,19 @@ export const UI = {
         const html = `
         <div class="player-container" style="padding-top: 40px;">
             <div style="margin-bottom: 20px;">
+                <!-- Party Selection Header -->
+                ${Party.isHost && Party.isSelectingMedia ? `
+                <div style="background: linear-gradient(90deg, #6c5ce7, #a29bfe); padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; color: white;">
+                    <div>
+                        <strong style="font-size: 1.1em;"><i class="fas fa-broadcast-tower"></i> Selecting Media for Watch Party</strong>
+                        <div style="font-size: 0.9em; opacity: 0.9;">Choose a server below, then click Confirm.</div>
+                    </div>
+                    <button onclick="UI.confirmPartySelection('${escape(item.title || item.name)}', '${item.poster_path}')" class="btn" style="background: white; color: #6c5ce7; font-weight: bold; padding: 10px 20px; border: none;">
+                        <i class="fas fa-check"></i> Confirm Selection
+                    </button>
+                </div>
+                ` : ''}
+
                 <h1>${item.title || item.name} ${type === 'tv' ? `- S${season} E${episode}` : ''}</h1>
                 <div class="server-controls" style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
                     
@@ -782,6 +807,29 @@ export const UI = {
                 loader.style.display = 'none';
             }
         });
+    },
+
+    confirmPartySelection(title, poster) {
+        const iframe = document.getElementById('videoIframe');
+        if (!iframe || !iframe.src) return alert('No video source found.');
+
+        const mediaState = {
+            type: 'iframe',
+            src: iframe.src,
+            poster: poster,
+            title: unescape(title)
+        };
+
+        // 1. Update Party State
+        Party.currentMedia = mediaState;
+        Party.isSelectingMedia = false;
+
+        // 2. Broadcast to room
+        Party.sendSync('CHANGE_MEDIA', 0, mediaState);
+        Party.sendMessage(`Selected media: ${unescape(title)}`);
+
+        // 3. Return to party
+        window.location.hash = '#watchparty';
     },
 
     async renderDownloadPage(type, id) {

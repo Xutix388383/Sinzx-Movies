@@ -414,7 +414,92 @@ footer {
 }
 
 /* Mobile Responsiveness */
+.hamburger {
+    display: none;
+    font-size: 1.5rem;
+    color: white;
+    cursor: pointer;
+    padding: 10px;
+    z-index: 1001;
+}
+
 @media (max-width: 768px) {
+    /* Navbar Adjustments */
+    .hamburger { display: block; }
+    
+    .nav-links {
+        position: fixed;
+        top: var(--header-height);
+        left: 0;
+        width: 100%;
+        background: rgba(5, 5, 5, 0.98);
+        flex-direction: column;
+        align-items: center;
+        padding: 20px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        transform: translateY(-150%);
+        transition: transform 0.3s ease-in-out;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .nav-links.active {
+        transform: translateY(0);
+    }
+
+    .nav-links a {
+        margin: 15px 0;
+        font-size: 1.2rem;
+        display: block;
+        width: 100%;
+        text-align: center;
+    }
+
+    .search-bar {
+        position: absolute;
+        top: var(--header-height);
+        left: 0;
+        width: 100%;
+        border-radius: 0;
+        background: #111;
+        border-bottom: 1px solid #333;
+        z-index: 999;
+        display: none; /* Toggle if needed, or keep always visible? For now, hide on small request */
+    }
+
+    /* Keep Search simplified for now or integrate into menu */
+    .search-bar { 
+        width: 160px; /* Smaller width in heater */
+        padding: 5px 10px;
+    }
+
+    /* Hero Adjustments */
+    .hero { height: 60vh; }
+    .hero-title { font-size: 2.5rem; }
+    .hero-overview { 
+        font-size: 0.9rem; 
+        -webkit-line-clamp: 3;
+    }
+    .hero-content { padding: 20px; }
+    
+    .hero-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .hero-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Grid Adjustments */
+    .movie-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 15px;
+        padding: 0 15px;
+    }
+
+    /* Landing Page */
     .landing-title {
         font-size: 3rem;
         /* Smaller title for mobile */
@@ -439,6 +524,10 @@ footer {
         max-width: 80% !important;
         /* Prevent logo from being too huge */
     }
+    
+    /* Player Container */
+    .player-container { padding: 0 10px; }
+    .server-controls { flex-direction: column; }
 }
 
 /* Download Page Styles */
