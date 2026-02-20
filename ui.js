@@ -377,9 +377,10 @@ export const UI = {
                     </div>
                     `}
             </div>
-            </div >
+            </div>
+            </div>
 
-            < !--Room State-- >
+    <!--Room State-->
     <div id="party-room" style="display: none; width: 100%; max-width: 1600px; margin: 0 auto;">
         <!-- Header -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -534,22 +535,28 @@ export const UI = {
 
     enterPartyRoom(roomId, isHost) {
         // Hide Landing, Show Room
-        document.getElementById('party-landing').style.display = 'none';
-        const room = document.getElementById('party-room');
-        room.style.display = 'grid'; // Grid layout for desktop
+        const landing = document.getElementById('party-landing');
+        if (landing) landing.style.display = 'none';
 
-        document.getElementById('currentRoomId').innerText = roomId;
+        const room = document.getElementById('party-room');
+        if (room) room.style.display = 'grid'; // Grid layout for desktop
+
+        const idDisplay = document.getElementById('currentRoomId');
+        if (idDisplay) idDisplay.innerText = roomId;
 
         // Update Copy Button to Copy Link
-        const copyBtn = document.querySelector('#party-room .fa-copy').parentElement;
-        copyBtn.onclick = () => {
-            const link = `${window.location.origin}/#watchparty?join=${roomId}`;
-            navigator.clipboard.writeText(link);
-            // Visual feedback
-            const originalHTML = copyBtn.innerHTML;
-            copyBtn.innerHTML = '<i class="fas fa-check"></i>';
-            setTimeout(() => copyBtn.innerHTML = originalHTML, 1500);
-        };
+        const copyBtnIcon = document.querySelector('#party-room .fa-copy');
+        if (copyBtnIcon && copyBtnIcon.parentElement) {
+            const copyBtn = copyBtnIcon.parentElement;
+            copyBtn.onclick = () => {
+                const link = `${window.location.origin}/#watchparty?join=${roomId}`;
+                navigator.clipboard.writeText(link);
+                // Visual feedback
+                const originalHTML = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+                setTimeout(() => copyBtn.innerHTML = originalHTML, 1500);
+            };
+        }
 
         this.setupPartyEvents(isHost);
 
@@ -582,19 +589,27 @@ export const UI = {
         const iframe = document.getElementById('party-iframe');
         const placeholder = document.getElementById('party-placeholder');
 
-        placeholder.style.display = 'none';
+        if (placeholder) placeholder.style.display = 'none';
 
         if (state.type === 'iframe') {
-            video.style.display = 'none';
-            video.pause();
-            iframe.style.display = 'block';
-            if (iframe.src !== state.src) iframe.src = state.src;
+            if (video) {
+                video.style.display = 'none';
+                video.pause();
+            }
+            if (iframe) {
+                iframe.style.display = 'block';
+                if (iframe.src !== state.src) iframe.src = state.src;
+            }
         } else {
-            iframe.style.display = 'none';
-            iframe.src = '';
-            video.style.display = 'block';
-            if (video.src !== state.src) video.src = state.src;
-            // video.play(); // Auto-play might be blocked
+            if (iframe) {
+                iframe.style.display = 'none';
+                iframe.src = '';
+            }
+            if (video) {
+                video.style.display = 'block';
+                if (video.src !== state.src) video.src = state.src;
+                // video.play(); // Auto-play might be blocked
+            }
         }
     },
 
@@ -604,6 +619,7 @@ export const UI = {
 
         // PeerJS Callbacks
         Party.on('onMessage', (msg) => {
+            if (!chat) return; // Safety check for closure var
             const isSelf = msg.name === Party.username;
             const div = document.createElement('div');
             div.className = `chat - bubble ${isSelf ? 'chat-self' : 'chat-other'} `;
@@ -628,6 +644,7 @@ export const UI = {
 
         // System Messages
         Party.on('onStatus', (msg) => {
+            if (!chat) return;
             const div = document.createElement('div');
             div.style.textAlign = 'center';
             div.style.fontSize = '0.8em';
@@ -648,7 +665,8 @@ export const UI = {
                 // Also sync time/state if playing (for video elements)
                 if (video && !video.paused) {
                     setTimeout(() => {
-                        Party.sendSync('PLAY', video.currentTime);
+                        // Re-check existence
+                        if (video) Party.sendSync('PLAY', video.currentTime);
                     }, 500);
                 }
             }
@@ -658,6 +676,8 @@ export const UI = {
             // console.log('Sync Event:', data);
             if (isHost) return; // Host ignores sync (they are source of truth)
 
+            if (!video) return; // Safety check
+
             // Allow slight variance (2s) to prevent jitter loops
             const timeDiff = Math.abs(video.currentTime - data.time);
 
@@ -666,15 +686,17 @@ export const UI = {
                 Party.currentMedia = data.state; // Update local state for clients too
 
                 // Add system message about media change
-                const div = document.createElement('div');
-                div.className = 'chat-bubble';
-                div.style.background = 'rgba(255,255,255,0.05)';
-                div.style.color = '#aaa';
-                div.style.textAlign = 'center';
-                div.style.fontSize = '0.8rem';
-                div.innerText = `Media changed to: ${data.state.title || 'Unknown'}`;
-                chat.appendChild(div);
-                chat.scrollTop = chat.scrollHeight;
+                if (chat) {
+                    const div = document.createElement('div');
+                    div.className = 'chat-bubble';
+                    div.style.background = 'rgba(255,255,255,0.05)';
+                    div.style.color = '#aaa';
+                    div.style.textAlign = 'center';
+                    div.style.fontSize = '0.8rem';
+                    div.innerText = `Media changed to: ${data.state.title || 'Unknown'}`;
+                    chat.appendChild(div);
+                    chat.scrollTop = chat.scrollHeight;
+                }
 
             } else if (data.action === 'PLAY') {
                 if (video.style.display !== 'none') {
