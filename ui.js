@@ -548,7 +548,7 @@ export const UI = {
             div.style.color = 'rgba(255,255,255,0.4)';
             div.style.margin = '10px 0';
             div.style.fontStyle = 'italic';
-            div.innerHTML = `< i class="fas fa-info-circle" ></i > ${msg} `;
+            div.innerHTML = `<i class="fas fa-info-circle"></i> ${msg} `;
             chat.appendChild(div);
             chat.scrollTop = chat.scrollHeight;
         });
@@ -646,7 +646,7 @@ export const UI = {
 
         const heroMovie = trending.results[0];
         const html = `
-    < header class="hero" >
+    <header class="hero">
             <img src="${CONFIG.IMAGE_BASE_URL}${heroMovie.backdrop_path}" class="hero-backdrop" style="transition: opacity 0.5s ease-in-out;">
             <div class="hero-content" style="transition: opacity 0.5s ease-in-out;">
                 <h1 class="hero-title">${heroMovie.title || heroMovie.name}</h1>
@@ -666,12 +666,6 @@ export const UI = {
             Logged in as <strong>${user.name}</strong> • <a href="#" onclick="event.preventDefault(); Auth.logout();" style="color: white; margin-left:10px;">Switch User</a>
         </div>
 
-         <!--Ad Blocker Warning Banner(Purple Theme)-- >
-    <div style="background: linear-gradient(90deg, #6c5ce7, #a29bfe); padding: 15px; text-align: center; margin: 20px auto; max-width: var(--container-width); border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 15px; color: white; font-weight: bold; box-shadow: 0 5px 15px rgba(108, 92, 231, 0.3);">
-        <i class="fas fa-shield-alt" style="font-size: 1.5rem;"></i>
-        <span>Pro Tip: Streaming servers may show ads. Use an Ad Blocker for the best experience!</span>
-        <a href="#adblock" class="btn" style="background: white; color: #6c5ce7; padding: 8px 20px; font-size: 0.9rem; border: none;">Get Protected</a>
-    </div>
         
         ${user.history && user.history.length > 0 ? createMovieRow(`Continue Watching (${user.name})`, user.history) : ''}
         ${createMovieRow('Trending Now', trending.results)}
@@ -684,6 +678,32 @@ export const UI = {
 
         app.innerHTML = html;
         startHeroSlider(trending.results);
+
+        // One-time AdBlock Warning Popup (Modal)
+        if (!localStorage.getItem('seenAdWarning')) {
+            const modalId = 'ad-warning-modal';
+            const modalHTML = `
+            <div id="${modalId}" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10000; animation: fadeIn 0.3s;">
+                <div style="background: linear-gradient(135deg, #2d3436, #000); padding: 40px; border-radius: 20px; text-align: center; max-width: 500px; border: 1px solid #6c5ce7; box-shadow: 0 0 50px rgba(108, 92, 231, 0.4);">
+                    <div style="font-size: 4rem; color: #ff9f43; margin-bottom: 20px;"><i class="fas fa-shield-alt"></i></div>
+                    <h2 style="margin-bottom: 15px; color: white;">Ad Blocker Recommended</h2>
+                    <p style="color: #ccc; margin-bottom: 30px; line-height: 1.6;">
+                        We use third-party servers which may contain popups. <br>
+                        For the best experience, please use an Ad Blocker.
+                    </p>
+                    <button onclick="localStorage.setItem('seenAdWarning', 'true'); document.getElementById('${modalId}').remove();" class="btn btn-primary" style="padding: 12px 30px; font-size: 1.1rem; width: 100%;">
+                        <i class="fas fa-check"></i> Got it, thanks!
+                    </button>
+                    <div style="margin-top: 15px;">
+                        <a href="#adblock" onclick="localStorage.setItem('seenAdWarning', 'true'); document.getElementById('${modalId}').remove();" style="color: #a29bfe; font-size: 0.9rem;">Show me how to block ads</a>
+                    </div>
+                </div>
+            </div>
+            `;
+            const div = document.createElement('div');
+            div.innerHTML = modalHTML;
+            document.body.appendChild(div);
+        }
     },
 
     async renderCatalogPage(type) {
@@ -697,7 +717,7 @@ export const UI = {
         const heroItem = items[0];
 
         app.innerHTML = `
-    < header class="hero" >
+    <header class="hero">
             <img src="${CONFIG.IMAGE_BASE_URL}${heroItem.backdrop_path}" class="hero-backdrop" style="transition: opacity 0.5s ease-in-out;">
             <div class="hero-content" style="transition: opacity 0.5s ease-in-out;">
                 <h1 class="hero-title">${heroItem.title || heroItem.name}</h1>
@@ -730,10 +750,10 @@ export const UI = {
 
         const isMovie = type === 'movie';
         const title = item.title || item.name;
-        const watchLink = isMovie ? `#watch / ${item.id} ` : `#watch / tv / ${item.id} /1/1`; // S1E1 default
+        const watchLink = isMovie ? `#watch/${item.id}` : `#watch/tv/${item.id}/1/1`; // S1E1 default
 
         app.innerHTML = `
-    < div class="hero" >
+    <div class="hero">
             <img src="${CONFIG.IMAGE_BASE_URL}${item.backdrop_path}" class="hero-backdrop">
             <div class="hero-content">
                 <h1 class="hero-title">${title}</h1>
@@ -762,6 +782,18 @@ export const UI = {
                 poster_path: item.poster_path,
                 backdrop_path: item.backdrop_path
             });
+        } else {
+            // API Error Handling
+            app.innerHTML = `
+            <div style="text-align: center; padding: 100px; color: white;">
+                <h1><i class="fas fa-exclamation-circle"></i> Error Loading Content</h1>
+                <p>Could not fetch details for this ${type}. The server might be busy.</p>
+                <div style="margin-top: 20px;">
+                    <a href="#home" class="btn btn-primary">Return Home</a>
+                    <button onclick="window.location.reload()" class="btn">Try Again</button>
+                </div>
+            </div>`;
+            return;
         }
 
         window.currentServers = [...SERVERS];
@@ -775,7 +807,7 @@ export const UI = {
         // Helper to render options consistently
         const renderOptions = (list) => {
             return list.map((s, i) =>
-                `< option value = "${i}" data - url="${getUrl(s)}" > ${s.name} ${s.isAdFree ? '[AD-FREE]' : ''} - ${s.type}</option > `
+                `<option value="${i}" data-url="${getUrl(s)}">${s.name} ${s.isAdFree ? '[AD-FREE]' : ''} - ${s.type}</option>`
             ).join('');
         };
 
