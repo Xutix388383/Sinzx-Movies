@@ -303,6 +303,35 @@ export const UI = {
                         </button>
                     </div>
                 </div>
+
+                <!-- Live / Public Rooms (Mock + Recent) -->
+                <div style="margin-top: 50px; width: 100%; max-width: 800px;">
+                    <h2 style="font-size: 1.5rem; margin-bottom: 20px; color: #ccc;">Live Public Rooms</h2>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+                        <!-- Mock Public Rooms -->
+                        <div class="glass-card" style="padding: 15px; cursor: pointer; border: 1px solid rgba(108, 92, 231, 0.2);" onclick="document.getElementById('roomCode').value='public-lounge'; document.getElementById('joinName').focus();">
+                             <div style="color: #6c5ce7; font-weight: bold; margin-bottom: 5px;">🍿 General Lounge</div>
+                             <div style="font-size: 0.8rem; color: #aaa;">124 watching</div>
+                        </div>
+                        <div class="glass-card" style="padding: 15px; cursor: pointer; border: 1px solid rgba(108, 92, 231, 0.2);" onclick="document.getElementById('roomCode').value='anime-club'; document.getElementById('joinName').focus();">
+                             <div style="color: #fab1a0; font-weight: bold; margin-bottom: 5px;">⛩️ Anime Club</div>
+                             <div style="font-size: 0.8rem; color: #aaa;">45 watching</div>
+                        </div>
+                         <div class="glass-card" style="padding: 15px; cursor: pointer; border: 1px solid rgba(108, 92, 231, 0.2);" onclick="document.getElementById('roomCode').value='horror-nights'; document.getElementById('joinName').focus();">
+                             <div style="color: #ff7675; font-weight: bold; margin-bottom: 5px;">👻 Horror Nights</div>
+                             <div style="font-size: 0.8rem; color: #aaa;">89 watching</div>
+                        </div>
+                    </div>
+                    
+                    ${Party.roomId ? `
+                    <div style="margin-top: 30px; text-align: center;">
+                        <p style="color: #a29bfe; margin-bottom: 10px;">You have an active session!</p>
+                        <button onclick="UI.enterPartyRoom('${Party.roomId}', ${Party.isHost})" class="btn btn-primary" style="padding: 10px 30px;">
+                            <i class="fas fa-undo"></i> Rejoin Room: ${Party.roomId}
+                        </button>
+                    </div>
+                    ` : ''}
+                </div>
             </div>
 
             <!-- Room State -->
