@@ -1557,4 +1557,6 @@ window.loadSeasonEpisodes = async (tvId, seasonNum) => {
     } catch (e) { if (list) list.innerHTML = 'Error loading episodes'; }
 };
 
+// Global for inline HTML calls
+window.Party = Party;
 window.UI = UI;
