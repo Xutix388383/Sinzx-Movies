@@ -189,77 +189,180 @@ export const UI = {
     },
 
     async renderWatchPartyPage() {
-        app.innerHTML = `
-        <div class="hero" style="min-height: 400px; display:flex; align-items:center; justify-content:center;">
-            <div class="hero-backdrop" style="background-image: url('img/hero-bg.jpg'); filter: blur(20px); opacity: 0.3;"></div>
-            <div class="hero-content" style="text-align: center; width:100%; max-width:1200px;">
-                <h1 class="hero-title"><i class="fas fa-users"></i> Watch Party</h1>
-                <p class="hero-overview">Watch movies and TV shows together with friends in real-time.</p>
+        // Inject Premium Styles for Watch Party
+        const styleId = 'watch-party-styles';
+        if (!document.getElementById(styleId)) {
+            const style = document.createElement('style');
+            style.id = styleId;
+            style.innerHTML = `
+                /* Animated Background */
+                .party-bg {
+                    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                    background: linear-gradient(45deg, #120c1f, #2d1b4e, #0c0814);
+                    background-size: 400% 400%;
+                    animation: gradientBG 15s ease infinite;
+                    z-index: -1;
+                }
+                @keyframes gradientBG {
+                    0% { background-position: 0% 50%; }
+                    50% { background-position: 100% 50%; }
+                    100% { background-position: 0% 50%; }
+                }
+
+                /* Glassmorphism Card */
+                .glass-card {
+                    background: rgba(255, 255, 255, 0.05);
+                    backdrop-filter: blur(16px);
+                    -webkit-backdrop-filter: blur(16px);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 16px;
+                    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+                }
+
+                /* Chat Bubbles */
+                .chat-bubble {
+                    padding: 10px 15px;
+                    border-radius: 15px;
+                    max-width: 80%;
+                    margin-bottom: 8px;
+                    font-size: 0.95rem;
+                    line-height: 1.4;
+                    position: relative;
+                    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                }
+                .chat-self {
+                    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+                    color: white;
+                    align-self: flex-end;
+                    border-bottom-right-radius: 5px;
+                }
+                .chat-other {
+                    background: rgba(255,255,255,0.1);
+                    color: #eee;
+                    align-self: flex-start;
+                    border-bottom-left-radius: 5px;
+                }
+                .chat-meta { font-size: 0.7rem; opacity: 0.7; margin-bottom: 2px; }
                 
-                <div id="party-landing" style="margin-top: 30px; display: flex; flex-direction: column; gap: 15px; align-items: center;">
-                     <div style="background: rgba(255,255,255,0.1); padding: 30px; border-radius: 10px; max-width: 400px; width: 100%;">
-                        <h3>Create a Party</h3>
-                        <p style="color:#aaa; font-size:0.9em; margin-bottom:15px;">Start a new room and invite friends.</p>
-                        <input type="text" id="hostName" placeholder="Your Name" style="width: 100%; padding: 10px; margin-bottom: 10px; background: #333; border: 1px solid #444; color: white; border-radius: 5px;">
-                        <button onclick="UI.createParty()" class="btn btn-primary" style="width: 100%;">Create Room</button>
+                @keyframes popIn {
+                    from { opacity: 0; transform: scale(0.8); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+
+                /* Glow Effect for Player */
+                .player-glow {
+                    box-shadow: 0 0 30px rgba(108, 92, 231, 0.2);
+                    transition: box-shadow 0.3s ease;
+                }
+                .player-glow:hover {
+                    box-shadow: 0 0 50px rgba(108, 92, 231, 0.4);
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        app.innerHTML = `
+        <div class="party-bg"></div>
+        <div class="container" style="min-height: 90vh; display: flex; flex-direction: column; padding-top: 80px;">
+            
+            <!-- Landing State -->
+            <div id="party-landing" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+                <h1 style="font-family: 'Outfit', sans-serif; font-size: 3.5rem; margin-bottom: 20px; background: linear-gradient(to right, #fff, #a29bfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    Watch Party
+                </h1>
+                <p style="font-size: 1.2rem; color: #ccc; margin-bottom: 50px; max-width: 600px;">
+                    Experience movies and TV shows in perfect sync with your friends. High-quality mirroring, real-time chat, and zero latency.
+                </p>
+
+                <div style="display: flex; gap: 30px; flex-wrap: wrap; justify-content: center;">
+                    <!-- Host Card -->
+                    <div class="glass-card" style="padding: 40px; width: 320px; text-align: left; transition: transform 0.3s ease;">
+                        <div style="font-size: 2rem; color: #6c5ce7; margin-bottom: 20px;"><i class="fas fa-broadcast-tower"></i></div>
+                        <h2 style="margin-bottom: 10px;">Host a Room</h2>
+                        <p style="color: #aaa; font-size: 0.9rem; margin-bottom: 25px;">Create a private room and invite your friends to watch together.</p>
+                        <input type="text" id="hostName" placeholder="Enter your name" class="glass-input" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; margin-bottom: 15px;">
+                        <button onclick="UI.createParty()" class="btn btn-primary" style="width: 100%; box-shadow: 0 5px 15px rgba(108, 92, 231, 0.4);">
+                            <i class="fas fa-plus-circle"></i> Create Party
+                        </button>
                     </div>
 
-                    <div style="background: rgba(255,255,255,0.1); padding: 30px; border-radius: 10px; max-width: 400px; width: 100%;">
-                        <h3>Join a Party</h3>
-                        <p style="color:#aaa; font-size:0.9em; margin-bottom:15px;">Enter the Room ID from your friend.</p>
-                        <input type="text" id="joinName" placeholder="Your Name" style="width: 100%; padding: 10px; margin-bottom: 10px; background: #333; border: 1px solid #444; color: white; border-radius: 5px;">
-                        <input type="text" id="roomCode" placeholder="Room ID" style="width: 100%; padding: 10px; margin-bottom: 10px; background: #333; border: 1px solid #444; color: white; border-radius: 5px;">
-                        <button onclick="UI.joinParty()" class="btn" style="width: 100%;">Join Room</button>
+                    <!-- Join Card -->
+                    <div class="glass-card" style="padding: 40px; width: 320px; text-align: left; transition: transform 0.3s ease;">
+                        <div style="font-size: 2rem; color: #fab1a0; margin-bottom: 20px;"><i class="fas fa-ticket-alt"></i></div>
+                        <h2 style="margin-bottom: 10px;">Join a Room</h2>
+                        <p style="color: #aaa; font-size: 0.9rem; margin-bottom: 25px;">Have a code? Enter it below to join an existing party.</p>
+                        <input type="text" id="joinName" placeholder="Enter your name" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; margin-bottom: 10px;">
+                        <input type="text" id="roomCode" placeholder="Room ID" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; margin-bottom: 15px;">
+                        <button onclick="UI.joinParty()" class="btn" style="width: 100%; background: #fab1a0; color: #2d3436; font-weight: bold;">
+                            <i class="fas fa-sign-in-alt"></i> Join Party
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Room State -->
+            <div id="party-room" style="display: none; width: 100%; max-width: 1600px; margin: 0 auto;">
+                <!-- Header -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div class="glass-card" style="padding: 10px 20px; display: flex; align-items: center; gap: 15px;">
+                        <span style="color: #aaa; font-size: 0.9rem;">ROOM ID</span>
+                        <code id="currentRoomId" style="color: #6c5ce7; font-size: 1.1rem; letter-spacing: 1px;">...</code>
+                        <button onclick="navigator.clipboard.writeText(document.getElementById('currentRoomId').innerText)" style="background: none; border: none; color: white; cursor: pointer; opacity: 0.7; transition: opacity 0.3s;"><i class="fas fa-copy"></i></button>
+                    </div>
+                    <div>
+                        <button onclick="window.location.reload()" class="btn" style="background: rgba(255,50,50,0.2); color: #ff6b6b; border: 1px solid rgba(255,50,50,0.3);"><i class="fas fa-sign-out-alt"></i> Leave Party</button>
                     </div>
                 </div>
 
-                <div id="party-room" style="display: none; width: 100%; max-width: 1400px; margin-top: 20px;">
-                    <div style="display: grid; grid-template-columns: 1fr 300px; gap: 20px; text-align: left;">
-                        <!-- Main Player Area -->
-                        <div style="background: #000; border-radius: 10px; overflow: hidden; aspect-ratio: 16/9; position: relative;">
-                            <video id="party-video" controls style="width: 100%; height: 100%;"></video>
-                            <div id="party-placeholder" style="position: absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#111; z-index:1;">
-                                <div style="text-align:center;">
-                                    <i class="fas fa-film" style="font-size: 3rem; color: #333; margin-bottom: 20px;"></i>
-                                    <h3>Waiting for media...</h3>
-                                    <p id="host-controls" style="display:none; color:#aaa; margin-top:10px;">You are the host. Search below to select a movie.</p>
-                                </div>
+                <div style="display: grid; grid-template-columns: 1fr 350px; gap: 30px; height: 75vh;">
+                    
+                    <!-- Player Section -->
+                    <div style="display: flex; flex-direction: column; gap: 20px;">
+                        <div class="glass-card player-glow" style="flex: 1; overflow: hidden; position: relative; background: #000; display: flex; align-items: center; justify-content: center;">
+                            <video id="party-video" controls style="width: 100%; height: 100%; object-fit: contain;"></video>
+                            
+                            <!-- Placeholder / Empty State -->
+                            <div id="party-placeholder" style="position: absolute; text-align: center; color: rgba(255,255,255,0.5);">
+                                <i class="fas fa-film" style="font-size: 5rem; margin-bottom: 20px; opacity: 0.5;"></i>
+                                <h2 style="font-weight: 300;">Waiting for media...</h2>
+                                <p id="host-controls" style="display:none; color: #a29bfe; margin-top: 10px;">You are the host.<br>Use the search below to select content.</p>
                             </div>
                         </div>
 
-                        <!-- Sidebar -->
-                        <div style="display: flex; flex-direction: column; height: 100%; max-height: 60vh;">
-                            <!-- Room Info -->
-                            <div style="background: #222; padding: 15px; border-radius: 10px; margin-bottom: 10px;">
-                                <h4 style="margin-bottom: 5px;">Room ID</h4>
-                                <div style="display:flex; gap:10px;">
-                                    <input type="text" id="currentRoomId" readonly style="flex:1; background:#111; border:none; color:#ddd; padding:5px; border-radius:3px;">
-                                    <button onclick="navigator.clipboard.writeText(document.getElementById('currentRoomId').value)" style="background:#444; color:white; border:none; border-radius:3px; cursor:pointer;"><i class="fas fa-copy"></i></button>
+                        <!-- Host Search (Only visible to host) -->
+                        <div id="host-search-area" style="display: none;">
+                            <div class="glass-card" style="padding: 20px;">
+                                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                                    <input type="text" id="partySearch" placeholder="Search for movies or TV shows..." style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white;">
+                                    <button onclick="UI.searchPartyMedia()" class="btn btn-primary"><i class="fas fa-search"></i> Search</button>
                                 </div>
-                            </div>
-
-                            <!-- Chat -->
-                            <div style="background: #222; flex: 1; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden;">
-                                <div id="chat-messages" style="flex: 1; padding: 10px; overflow-y: auto; font-size: 0.9em;">
-                                    <div style="color: #666; text-align: center; font-style: italic;">Welcome to the chat!</div>
-                                </div>
-                                <div style="padding: 10px; background: #1a1a1a; display: flex; gap: 5px;">
-                                    <input type="text" id="chatInput" placeholder="Type a message..." style="flex: 1; background: #333; border: none; color: white; padding: 8px; border-radius: 5px;" onkeypress="if(event.key==='Enter') UI.sendChatMessage()">
-                                    <button onclick="UI.sendChatMessage()" style="background: var(--primary); color: white; border: none; padding: 8px 15px; border-radius: 5px;"><i class="fas fa-paper-plane"></i></button>
+                                <div id="party-results" class="movie-grid" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; max-height: 200px; overflow-y: auto;">
+                                    <!-- Results injected here -->
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Host Controls (Media Search) -->
-                    <div id="host-search-area" style="display: none; margin-top: 30px; text-align: left;">
-                         <h2 class="section-title">Select Media (Host Only)</h2>
-                         <div class="search-bar" style="max-width: 500px; margin-bottom: 20px;">
-                            <input type="text" id="partySearch" placeholder="Search for movies/TV..." style="width: 100%; padding: 10px; background: #333; border: 1px solid #444; color: white; border-radius: 5px;">
-                            <button onclick="UI.searchPartyMedia()" class="btn btn-primary" style="margin-left: 10px;">Search</button>
-                         </div>
-                         <div id="party-results" class="movie-grid"></div>
+                    <!-- Sidebar (Chat) -->
+                    <div class="glass-card" style="display: flex; flex-direction: column; overflow: hidden; height: 100%;">
+                        <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <h3 style="margin: 0;">Party Chat</h3>
+                        </div>
+                        
+                        <div id="chat-messages" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                            <div style="text-align: center; color: rgba(255,255,255,0.3); font-size: 0.9rem; margin-top: auto;">
+                                <i class="fas fa-lock"></i> Messages are encrypted (P2P)
+                            </div>
+                        </div>
+
+                        <div style="padding: 20px; background: rgba(0,0,0,0.2); ">
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="chatInput" placeholder="Type a message..." style="flex: 1; padding: 12px; border-radius: 20px; border: none; background: rgba(255,255,255,0.1); color: white;" onkeypress="if(event.key==='Enter') UI.sendChatMessage()">
+                                <button onclick="UI.sendChatMessage()" style="width: 40px; height: 40px; border-radius: 50%; border: none; background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; cursor: pointer; transition: transform 0.2s;"><i class="fas fa-paper-plane"></i></button>
+                            </div>
+                        </div>
                     </div>
+
                 </div>
             </div>
         </div>
@@ -303,22 +406,44 @@ export const UI = {
 
         // PeerJS Callbacks
         Party.on('onMessage', (msg) => {
+            const isSelf = msg.name === Party.username;
             const div = document.createElement('div');
-            div.style.marginBottom = '5px';
-            div.innerHTML = `<strong style="color: var(--primary);">${msg.name}:</strong> ${msg.text}`;
+            div.className = `chat-bubble ${isSelf ? 'chat-self' : 'chat-other'}`;
+
+            // Name/Meta
+            const meta = document.createElement('div');
+            meta.className = 'chat-meta';
+            meta.innerText = isSelf ? 'You' : msg.name;
+            if (!isSelf && msg.color) meta.style.color = msg.color;
+
+            // Text
+            const text = document.createElement('div');
+            text.innerText = msg.text;
+
+            div.appendChild(meta);
+            div.appendChild(text);
             chat.appendChild(div);
+
             // Auto-scroll
             chat.scrollTop = chat.scrollHeight;
         });
 
-        // Triggered when own message sent too
+        // System Messages
         Party.on('onStatus', (msg) => {
             const div = document.createElement('div');
-            div.style.marginTop = '5px';
+            div.style.textAlign = 'center';
             div.style.fontSize = '0.8em';
-            div.style.color = '#aaa';
-            div.textContent = msg;
+            div.style.color = 'rgba(255,255,255,0.4)';
+            div.style.margin = '10px 0';
+            div.style.fontStyle = 'italic';
+            div.innerHTML = `<i class="fas fa-info-circle"></i> ${msg}`;
             chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        });
+
+        // User Join/List Events
+        Party.on('onUserJoin', (name) => {
+            // Optional: Update a user list UI if we had one in the sidebar
         });
 
         Party.on('onSync', (data) => {
@@ -333,16 +458,21 @@ export const UI = {
                 // video.poster = data.state.poster;
                 document.getElementById('party-placeholder').style.display = 'none';
                 video.play();
-                // Add message
+
+                // System notification in chat
                 const div = document.createElement('div');
-                div.innerHTML = `<em style="color:#aaa;">Host changed media...</em>`;
+                div.style.textAlign = 'center';
+                div.style.margin = '15px 0';
+                div.innerHTML = `<span style="background: rgba(108, 92, 231, 0.2); color: #a29bfe; padding: 5px 10px; border-radius: 20px; font-size: 0.8em;">Host changed media</span>`;
                 chat.appendChild(div);
+                chat.scrollTop = chat.scrollHeight;
+
             } else if (data.action === 'PLAY') {
-                // if (video.paused) video.play();
-                // if (timeDiff > 2) video.currentTime = data.time;
+                if (video.paused) video.play();
+                if (timeDiff > 2) video.currentTime = data.time;
             } else if (data.action === 'PAUSE') {
-                // video.pause();
-                // video.currentTime = data.time; // Snap to exact time
+                video.pause();
+                video.currentTime = data.time; // Snap to exact time
             } else if (data.action === 'SEEK') {
                 video.currentTime = data.time;
             }

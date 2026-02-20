@@ -6,6 +6,7 @@ export class PartyManager {
         this.myId = null;
         this.isHost = false;
         this.username = 'User-' + Math.floor(Math.random() * 1000);
+        this.color = this.getRandomColor();
         this.callbacks = {
             onMessage: () => { },
             onSync: () => { },
@@ -71,7 +72,7 @@ export class PartyManager {
             this.callbacks.onStatus('Connected to ' + conn.peer);
 
             // Send initial join info
-            conn.send({ type: 'JOIN', name: this.username });
+            conn.send({ type: 'JOIN', name: this.username, color: this.color });
         });
 
         conn.on('data', (data) => {
@@ -111,7 +112,7 @@ export class PartyManager {
 
     // Send chat message
     sendMessage(text) {
-        const msg = { type: 'CHAT', name: this.username, text: text, time: Date.now() };
+        const msg = { type: 'CHAT', name: this.username, text: text, color: this.color, time: Date.now() };
         this.broadcast(msg);
         this.callbacks.onMessage(msg); // Show own message
     }
@@ -134,6 +135,11 @@ export class PartyManager {
     // Register callbacks
     on(event, callback) {
         if (this.callbacks[event]) this.callbacks[event] = callback;
+    }
+
+    getRandomColor() {
+        const colors = ['#ff6b6b', '#feca57', '#1dd1a1', '#54a0ff', '#5f27cd', '#ff9ff3', '#00d2d3'];
+        return colors[Math.floor(Math.random() * colors.length)];
     }
 }
 
