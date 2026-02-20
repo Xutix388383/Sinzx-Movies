@@ -909,3 +909,5 @@ window.loadSeasonEpisodes = async (tvId, seasonNum) => {
     `).join('');
     } catch (e) { if (list) list.innerHTML = 'Error loading episodes'; }
 };
+
+window.UI = UI;

@@ -94,3 +94,5 @@ export const Auth = {
         localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(updatedUser)); // Update session too
     }
 };
+
+window.Auth = Auth;
