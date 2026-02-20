@@ -63,6 +63,8 @@ function router() {
         UI.renderSportsPage();
     } else if (hash === '#fights') {
         UI.renderFightsPage();
+    } else if (hash.startsWith('#channel/')) {
+        UI.renderChannelDetailsPage(hash.split('/')[1]);
     } else if (hash.startsWith('#search/')) {
         UI.renderSearchPage(decodeURIComponent(hash.split('/')[1]));
     } else if (hash === '#movies') {

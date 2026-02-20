@@ -547,6 +547,50 @@ export const UI = {
         ]);
     },
 
+    async renderChannelDetailsPage(channelDataURI) {
+        const c = JSON.parse(decodeURIComponent(channelDataURI));
+        app.innerHTML = '<div class="loading-spinner"></div>';
+
+        // Simulate a "backdrop" using the logo or a generic TV pattern
+        const backdrop = c.logo || 'img/hero-bg.jpg';
+
+        app.innerHTML = `
+        <div class="hero">
+            <div class="hero-backdrop" style="background-image: url('${backdrop}'); background-size: cover; filter: blur(20px); opacity: 0.3;"></div>
+            <div class="hero-content">
+                <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 20px;">
+                    ${c.logo ? `<img src="${c.logo}" style="max-width: 200px; max-height: 150px; object-fit: contain; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px;">` : '<i class="fas fa-tv" style="font-size: 5rem;"></i>'}
+                    
+                    <div>
+                        <h1 class="hero-title">${c.name}</h1>
+                        <div class="hero-meta">
+                            <span class="rating">${c.group}</span>
+                            <span>Live Stream</span>
+                        </div>
+                        <p class="hero-overview">Watch ${c.name} live. Stream provided by verifyable public sources.</p>
+                        
+                        <div class="hero-actions">
+                            <button onclick="UI.openModalPlayer('${encodeURIComponent(JSON.stringify(c))}')" class="btn btn-primary"><i class="fas fa-play"></i> Watch Live</button>
+                            <button onclick="history.back()" class="btn"><i class="fas fa-arrow-left"></i> Back</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="container" style="padding-top: 20px;">
+            <h2 class="section-title">Channel Info</h2>
+            <div style="background: #222; padding: 20px; border-radius: 10px;">
+                <p><strong>Channel Name:</strong> ${c.name}</p>
+                <p><strong>Category:</strong> ${c.group}</p>
+                <p><strong>Stream URL:</strong> <span style="color: #666; font-size: 0.8em;">${c.url}</span></p>
+            </div>
+        </div>
+        `;
+
+        window.scrollTo(0, 0);
+    },
+
     renderCategoryPage(pageTitle, allChannels, categories, extraRows = []) {
         if (!allChannels || !allChannels.length) {
             app.innerHTML = `<h2>No channels found for ${pageTitle}</h2>`;
@@ -592,7 +636,7 @@ export const UI = {
                 </div>
                 <p class="hero-overview">Watch ${heroChannel.name} live now.</p>
                 <div class="hero-actions">
-                    <button onclick="UI.openModalPlayer('${encodeURIComponent(JSON.stringify(heroChannel))}')" class="btn btn-primary"><i class="fas fa-play"></i> Watch Live</button>
+                    <a href="#channel/${encodeURIComponent(JSON.stringify(heroChannel))}" class="btn btn-primary"><i class="fas fa-info-circle"></i> More Info</a>
                 </div>
             </div>
         </header>
@@ -660,7 +704,7 @@ export const UI = {
 
     createChannelCard(c) {
         return `
-        <div class="movie-card channel-item" data-group="${c.group}" onclick="UI.openModalPlayer('${encodeURIComponent(JSON.stringify(c))}')">
+        <div class="movie-card channel-item" data-group="${c.group}" onclick="window.location.hash='#channel/${encodeURIComponent(JSON.stringify(c))}'">
             <div class="poster-wrapper" style="background: #222; display: flex; align-items: center; justify-content: center; aspect-ratio: 16/9;">
                 ${c.logo ? `<img src="${c.logo}" loading="lazy" style="object-fit: contain; width: 80%; height: 80%;" onerror="this.onerror=null;this.src='logo.png';">` : '<i class="fas fa-tv" style="font-size: 3rem; color: #444;"></i>'}
             </div>
@@ -700,35 +744,62 @@ export const UI = {
         modal.style.display = 'flex';
         info.innerHTML = `<strong>${c.name}</strong><br><span style="font-size:0.8em; color:#ccc;">${c.group}</span>`;
 
-        if (Hls.isSupported()) {
-            if (window.hls) window.hls.destroy(); // Destroy previous instance
+        let isProxy = false;
+        const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(c.url);
 
-            const hls = new Hls();
-            window.hls = hls; // Keep reference to destroy later
-            hls.loadSource(c.url);
-            hls.attachMedia(video);
-            hls.on(Hls.Events.MANIFEST_PARSED, function () {
-                video.play().catch(e => console.log('Autoplay blocked', e));
-            });
-            hls.on(Hls.Events.ERROR, function (event, data) {
-                if (data.fatal) {
-                    switch (data.type) {
-                        case Hls.ErrorTypes.NETWORK_ERROR:
-                            hls.startLoad();
-                            break;
-                        case Hls.ErrorTypes.MEDIA_ERROR:
-                            hls.recoverMediaError();
-                            break;
-                        default:
-                            hls.destroy();
-                            break;
+        const loadStream = (url) => {
+            if (Hls.isSupported()) {
+                if (window.hls) window.hls.destroy();
+
+                const hls = new Hls();
+                window.hls = hls;
+                hls.loadSource(url);
+                hls.attachMedia(video);
+
+                hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                    video.play().catch(e => console.log('Autoplay blocked', e));
+                });
+
+                hls.on(Hls.Events.ERROR, function (event, data) {
+                    if (data.fatal) {
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                console.log("Network error, trying recovery...");
+                                if (!isProxy) {
+                                    console.log("Attempting CORS proxy...");
+                                    isProxy = true;
+                                    info.innerHTML += '<br><span style="color: #ff9f43; font-size: 0.8em;"><i class="fas fa-shield-alt"></i> Bypassing restrictions...</span>';
+                                    hls.destroy();
+                                    loadStream(proxyUrl);
+                                } else {
+                                    hls.startLoad();
+                                }
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                hls.recoverMediaError();
+                                break;
+                            default:
+                                hls.destroy();
+                                break;
+                        }
                     }
-                }
-            });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = c.url;
-            video.play();
-        }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = url;
+                video.play();
+                // Native HLS error handling is limited, rely on browser
+                video.onerror = () => {
+                    if (!isProxy) {
+                        isProxy = true;
+                        info.innerHTML += '<br><span style="color: #ff9f43; font-size: 0.8em;"><i class="fas fa-shield-alt"></i> Bypassing restrictions...</span>';
+                        video.src = proxyUrl;
+                        video.play();
+                    }
+                };
+            }
+        };
+
+        loadStream(c.url);
     },
 
     closeModalPlayer() {
