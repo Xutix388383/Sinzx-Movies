@@ -519,6 +519,119 @@ export const UI = {
         const res = await api.search(query);
         if (!res || !res.results.length) { app.innerHTML = '<h2>No results</h2>'; return; }
         app.innerHTML = createMovieRow(`Results for "${query}"`, res.results.filter(x => x.media_type === 'movie' || x.media_type === 'tv'));
+    },
+
+    async renderLiveTVPage() {
+        app.innerHTML = '<div class="loading-spinner"></div>';
+        const channels = await api.getLiveTV();
+        this.renderChannelGrid('Live TV (US)', channels);
+    },
+
+    async renderSportsPage() {
+        app.innerHTML = '<div class="loading-spinner"></div>';
+        const channels = await api.getSports();
+        this.renderChannelGrid('Sports', channels);
+    },
+
+    async renderFightsPage() {
+        app.innerHTML = '<div class="loading-spinner"></div>';
+        const channels = await api.getFights();
+        this.renderChannelGrid('Fight Sector', channels);
+    },
+
+    renderChannelGrid(title, channels) {
+        if (!channels || !channels.length) {
+            app.innerHTML = `<h2>No channels found for ${title}</h2>`;
+            return;
+        }
+
+        // De-duplicate by URL to avoid same channel appearing multiple times
+        const unique = [];
+        const map = new Map();
+        for (const item of channels) {
+            if (!map.has(item.url)) {
+                map.set(item.url, true);
+                unique.push(item);
+            }
+        }
+
+        app.innerHTML = `
+        <div class="container" style="padding-top: 100px;">
+            <h1 class="section-title">${title} <span style="font-size:1rem; opacity:0.7;">(${unique.length} Channels)</span></h1>
+            <div class="movie-grid">
+                ${unique.map(c => `
+                    <div class="movie-card" onclick="UI.renderLivePlayer('${encodeURIComponent(JSON.stringify(c))}')">
+                        <div class="poster-wrapper" style="background: #222; display: flex; align-items: center; justify-content: center; aspect-ratio: 16/9;">
+                            ${c.logo ? `<img src="${c.logo}" loading="lazy" style="object-fit: contain; width: 80%; height: 80%;" onerror="this.onerror=null;this.src='logo.png';">` : '<i class="fas fa-tv" style="font-size: 3rem; color: #444;"></i>'}
+                        </div>
+                        <div class="movie-info">
+                            <h3 class="movie-title">${c.name}</h3>
+                            <span class="rating" style="font-size: 0.8rem; color: #aaa;">${c.group}</span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+        `;
+    },
+
+    renderLivePlayer(channelDataURI) {
+        const c = JSON.parse(decodeURIComponent(channelDataURI));
+
+        app.innerHTML = `
+        <div class="player-container" style="padding-top: 100px;">
+             <div style="margin-bottom: 20px;">
+                <a href="javascript:history.back()" style="color:white; text-decoration:none;"><i class="fas fa-arrow-left"></i> Back</a>
+                <h1 style="margin-top: 10px;">${c.name}</h1>
+                <p style="color: #aaa;">${c.group}</p>
+            </div>
+
+            <div class="video-wrapper" style="background: #000; aspect-ratio: 16/9; position: relative;">
+                <video id="video" controls style="width: 100%; height: 100%;"></video>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 20px; background: #222; border-radius: 8px;">
+                <p><i class="fas fa-info-circle"></i> If stream fails to load, the channel might be offline or geo-blocked.</p>
+                <div style="margin-top: 10px; word-break: break-all; color: #555; font-size: 0.8rem;">Stream URL: ${c.url}</div>
+            </div>
+        </div>
+        `;
+
+        const video = document.getElementById('video');
+        if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(c.url);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                video.play().catch(e => console.log('Autoplay blocked', e));
+            });
+
+            // Handle error recovery
+            hls.on(Hls.Events.ERROR, function (event, data) {
+                if (data.fatal) {
+                    switch (data.type) {
+                        case Hls.ErrorTypes.NETWORK_ERROR:
+                            console.log("fatal network error encountered, try to recover");
+                            hls.startLoad();
+                            break;
+                        case Hls.ErrorTypes.MEDIA_ERROR:
+                            console.log("fatal media error encountered, try to recover");
+                            hls.recoverMediaError();
+                            break;
+                        default:
+                            console.log("cannot recover");
+                            hls.destroy();
+                            break;
+                    }
+                }
+            });
+
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = c.url;
+            video.addEventListener('loadedmetadata', function () {
+                video.play();
+            });
+        }
     }
 };
 
@@ -598,6 +711,7 @@ function startHeroSlider(items) {
     }, 10000);
 }
 
+// Global for inline HTML calls
 // Global for inline HTML calls
 window.loadSeasonEpisodes = async (tvId, seasonNum) => {
     const list = document.getElementById('episodesList');

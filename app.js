@@ -57,6 +57,12 @@ function router() {
         UI.renderDetailsPage(hash.split('/')[1], 'movie');
     } else if (hash.startsWith('#tv/')) {
         UI.renderDetailsPage(hash.split('/')[1], 'tv');
+    } else if (hash === '#livetv') {
+        UI.renderLiveTVPage();
+    } else if (hash === '#sports') {
+        UI.renderSportsPage();
+    } else if (hash === '#fights') {
+        UI.renderFightsPage();
     } else if (hash.startsWith('#search/')) {
         UI.renderSearchPage(decodeURIComponent(hash.split('/')[1]));
     } else if (hash === '#movies') {

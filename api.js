@@ -57,6 +57,69 @@ class TMDB {
     async search(query) {
         return await this._fetch('/search/multi', { query });
     }
+
+    // --- Live TV / M3U Logic ---
+
+    async fetchM3U(url) {
+        try {
+            const res = await fetch(url);
+            const text = await res.text();
+            const channels = [];
+            const lines = text.split('\n');
+
+            let currentChannel = {};
+
+            lines.forEach(line => {
+                line = line.trim();
+                if (line.startsWith('#EXTINF:')) {
+                    // Parse metadata
+                    const logoMatch = line.match(/tvg-logo="([^"]*)"/);
+                    const groupMatch = line.match(/group-title="([^"]*)"/);
+                    const nameParts = line.split(',');
+
+                    currentChannel = {
+                        name: nameParts[nameParts.length - 1].trim(),
+                        logo: logoMatch ? logoMatch[1] : null,
+                        group: groupMatch ? groupMatch[1] : 'Uncategorized'
+                    };
+                } else if (line.startsWith('http')) {
+                    // URL line
+                    if (currentChannel.name) {
+                        currentChannel.url = line;
+                        channels.push(currentChannel);
+                        currentChannel = {};
+                    }
+                }
+            });
+            return channels;
+        } catch (e) {
+            console.error('M3U Fetch Error:', e);
+            return [];
+        }
+    }
+
+    async getLiveTV() {
+        // US Channels
+        const channels = await this.fetchM3U('https://iptv-org.github.io/iptv/countries/us.m3u');
+        return channels;
+    }
+
+    async getSports() {
+        const channels = await this.fetchM3U('https://iptv-org.github.io/iptv/categories/sports.m3u');
+        return channels;
+    }
+
+    async getFights() {
+        // Fetch sports and filter for fight keywords
+        const sports = await this.getSports();
+        const fightKeywords = ['fight', 'boxing', 'mma', 'wwe', 'ufc', 'wrestling', 'combat', 'kickbox'];
+
+        return sports.filter(c => {
+            const name = c.name.toLowerCase();
+            const group = c.group.toLowerCase();
+            return fightKeywords.some(k => name.includes(k) || group.includes(k));
+        });
+    }
 }
 
 export const api = new TMDB();
