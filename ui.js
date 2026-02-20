@@ -416,7 +416,8 @@ export const UI = {
                 <!-- Host Controls (Media Selection) -->
                 <div id="host-search-area" style="display: none;">
                     <!-- Master Sync Controls -->
-                     <div class="glass-card" style="padding: 15px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; justify-content: center; background: rgba(0,0,0,0.5);">
+                    <!-- Party Sync Controls -->
+                     <div id="party-sync-controls" class="glass-card" style="padding: 15px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; justify-content: center; background: rgba(0,0,0,0.5);">
                         <span style="color: #aaa; font-size: 0.8rem; margin-right: 10px;">PARTY SYNC:</span>
                         <button onclick="Party.sendSync('MASTER_PLAY', 0); Party.sendMessage('System: User pressed PLAY')" class="btn" style="padding: 5px 15px; background: #2ecc71;"><i class="fas fa-play"></i></button>
                         <button onclick="Party.sendSync('MASTER_PAUSE', 0); Party.sendMessage('System: User pressed PAUSE')" class="btn" style="padding: 5px 15px; background: #e17055;"><i class="fas fa-pause"></i></button>
@@ -424,14 +425,25 @@ export const UI = {
                         <button onclick="Party.sendSync('MASTER_SEEK', 10); Party.sendMessage('System: User skipped +10s')" class="btn" style="padding: 5px 15px; background: #636e72;">+10s</button>
                     </div>
 
-                    <div class="glass-card" style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
-                        <div>
-                            <h3 style="margin-bottom: 5px;">Select Content</h3>
-                            <p style="color: #aaa; font-size: 0.9em;">Browse the library and bring a movie/show here.</p>
+                    <div id="party-sync-warning" style="display: none; padding: 15px; background: rgba(255, 159, 67, 0.2); border: 1px solid #ff9f43; color: #ff9f43; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                        <i class="fas fa-exclamation-triangle"></i> Playback Sync is not available for embedded content. only "Change Media" is synced.
+                    </div>
+
+                    <div class="glass-card" style="padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <h3 style="margin-bottom: 5px;">Select Content</h3>
+                                <p style="color: #aaa; font-size: 0.9em;">Browse library or paste a direct link.</p>
+                            </div>
+                            <button onclick="UI.startPartySelection()" class="btn btn-primary" style="box-shadow: 0 5px 15px rgba(108, 92, 231, 0.4);">
+                                <i class="fas fa-search"></i> Browse Library
+                            </button>
                         </div>
-                        <button onclick="UI.startPartySelection()" class="btn btn-primary" style="box-shadow: 0 5px 15px rgba(108, 92, 231, 0.4);">
-                            <i class="fas fa-search"></i> Browse Library
-                        </button>
+                        
+                        <div style="display: flex; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                            <input type="text" id="customMediaUrl" placeholder="Paste direct video URL (.mp4, .m3u8)..." style="flex: 1; padding: 10px; border-radius: 5px; border: none; background: rgba(0,0,0,0.3); color: white;">
+                             <button onclick="UI.loadCustomMedia()" class="btn" style="background: #0984e3;"><i class="fas fa-link"></i> Play</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -492,6 +504,27 @@ export const UI = {
         window.location.hash = '#home';
         // Maybe show a toast or modal?
         alert('Go find a movie/show and click "Watch with Party"!');
+    },
+
+    loadCustomMedia() {
+        const urlInput = document.getElementById('customMediaUrl');
+        const url = urlInput ? urlInput.value.trim() : '';
+        if (!url) return alert('Please enter a valid URL');
+
+        const mediaState = {
+            type: 'video', // Triggers native player
+            src: url,
+            poster: '',
+            title: 'Custom Stream'
+        };
+
+        // Update Local & Broadcast
+        Party.updateMedia(mediaState);
+        Party.sendSync('CHANGE_MEDIA', 0, mediaState);
+        Party.sendMessage(`System: Host loaded a custom stream.`);
+
+        // Clear input
+        if (urlInput) urlInput.value = '';
     },
 
     async createParty() {
@@ -601,6 +634,12 @@ export const UI = {
                 iframe.style.display = 'block';
                 if (iframe.src !== state.src) iframe.src = state.src;
             }
+            // Hide Sync Controls for Iframe
+            const controls = document.getElementById('party-sync-controls');
+            const warning = document.getElementById('party-sync-warning');
+            if (controls) controls.style.display = 'none';
+            if (warning) warning.style.display = 'block';
+
         } else {
             if (iframe) {
                 iframe.style.display = 'none';
@@ -608,9 +647,34 @@ export const UI = {
             }
             if (video) {
                 video.style.display = 'block';
-                if (video.src !== state.src) video.src = state.src;
-                // video.play(); // Auto-play might be blocked
+
+                // HLS Support for Party Video
+                if (state.src.includes('.m3u8') && Hls.isSupported()) {
+                    if (window.partyHls) {
+                        window.partyHls.destroy();
+                        window.partyHls = null;
+                    }
+                    const hls = new Hls();
+                    window.partyHls = hls;
+                    hls.loadSource(state.src);
+                    hls.attachMedia(video);
+                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                        // video.play(); 
+                    });
+                } else {
+                    // Standard Video (MP4/WebM)
+                    if (window.partyHls) {
+                        window.partyHls.destroy();
+                        window.partyHls = null;
+                    }
+                    if (video.src !== state.src) video.src = state.src;
+                }
             }
+            // Show Sync Controls for Video
+            const controls = document.getElementById('party-sync-controls');
+            const warning = document.getElementById('party-sync-warning');
+            if (controls) controls.style.display = 'flex';
+            if (warning) warning.style.display = 'none';
         }
     },
 
