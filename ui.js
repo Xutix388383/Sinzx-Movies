@@ -511,17 +511,25 @@ export const UI = {
         const url = urlInput ? urlInput.value.trim() : '';
         if (!url) return alert('Please enter a valid URL');
 
+        // Smart Detect: Is it a direct video file?
+        // Basic check for common extensions. 
+        // If it looks like a website (no extension or .html/.php), assume iframe.
+        const isDirectVideo = /\.(mp4|webm|ogg|m3u8|mov)($|\?)/i.test(url);
+
         const mediaState = {
-            type: 'video', // Triggers native player
+            type: isDirectVideo ? 'video' : 'iframe',
             src: url,
             poster: '',
-            title: 'Custom Stream'
+            title: isDirectVideo ? 'Custom Stream' : 'Custom Web Page'
         };
 
         // Update Local & Broadcast
         Party.updateMedia(mediaState);
         Party.sendSync('CHANGE_MEDIA', 0, mediaState);
-        Party.sendMessage(`System: Host loaded a custom stream.`);
+        const msg = isDirectVideo
+            ? 'System: Host loaded a custom video stream.'
+            : 'System: Host loaded a custom web page.';
+        Party.sendMessage(msg);
 
         // Clear input
         if (urlInput) urlInput.value = '';
