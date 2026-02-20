@@ -10,7 +10,7 @@ export class PartyManager {
 
         // State
         this.isSelectingMedia = false;
-        this.currentMedia = null;
+        this.currentMedia = JSON.parse(localStorage.getItem('party_media')) || null;
         this.history = JSON.parse(localStorage.getItem('party_history')) || [];
 
         this.callbacks = {
@@ -34,6 +34,22 @@ export class PartyManager {
 
         if (this.history.length > 5) this.history.pop();
         localStorage.setItem('party_history', JSON.stringify(this.history));
+    }
+
+    deleteHistoryItem(id) {
+        this.history = this.history.filter(h => h.id !== id);
+        localStorage.setItem('party_history', JSON.stringify(this.history));
+    }
+
+    // End Room (Host)
+    endRoom() {
+        if (!this.isHost) return;
+        this.broadcast({ type: 'ROOM_ENDED' });
+        setTimeout(() => {
+            this.connections.forEach(conn => conn.close());
+            this.peer.destroy();
+            window.location.reload();
+        }, 500);
     }
 
     // Initialize Peer
@@ -136,7 +152,17 @@ export class PartyManager {
                 this.callbacks.onSync(data);
                 if (this.isHost) this.broadcast(data, senderConn);
                 break;
+            case 'ROOM_ENDED':
+                alert('The host has ended the session.');
+                window.location.reload();
+                break;
         }
+    }
+
+    // Update & Persist Media
+    updateMedia(state) {
+        this.currentMedia = state;
+        localStorage.setItem('party_media', JSON.stringify(state));
     }
 
     // Send chat message

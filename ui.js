@@ -343,11 +343,16 @@ export const UI = {
                         ${Party.history
                     .filter(h => h.role !== 'Host')
                     .map(room => `
-                        <div class="glass-card" style="padding: 15px; cursor: pointer; border: 1px solid rgba(108, 92, 231, 0.2); transition: transform 0.2s;" 
+                        <div class="glass-card" style="padding: 15px; cursor: pointer; border: 1px solid rgba(108, 92, 231, 0.2); transition: transform 0.2s; position: relative;" 
                              onclick="UI.joinParty('${room.id}')"
                              onmouseover="this.style.transform='scale(1.03)'" 
                              onmouseout="this.style.transform='scale(1)'">
-                             <div style="color: #6c5ce7; font-weight: bold; margin-bottom: 5px; overflow: hidden; text-overflow: ellipsis;">${room.id}</div>
+                             
+                             <button onclick="event.stopPropagation(); UI.deleteHistory('${room.id}')" style="position: absolute; top: 10px; right: 10px; background: none; border: none; color: #ff6b6b; cursor: pointer; padding: 5px; z-index: 10;">
+                                <i class="fas fa-trash"></i>
+                             </button>
+
+                             <div style="color: #6c5ce7; font-weight: bold; margin-bottom: 5px; overflow: hidden; text-overflow: ellipsis; padding-right: 20px;">${room.id}</div>
                              <div style="font-size: 0.8rem; color: #aaa;">Joined as Guest</div>
                              <div style="font-size: 0.7rem; color: #666;">${new Date(room.timestamp).toLocaleDateString()}</div>
                         </div>
@@ -367,7 +372,7 @@ export const UI = {
                 <button onclick="navigator.clipboard.writeText(document.getElementById('currentRoomId').innerText)" style="background: none; border: none; color: white; cursor: pointer; opacity: 0.7; transition: opacity 0.3s;"><i class="fas fa-copy"></i></button>
             </div>
             <div>
-                <button onclick="window.location.reload()" class="btn" style="background: rgba(255,50,50,0.2); color: #ff6b6b; border: 1px solid rgba(255,50,50,0.3);"><i class="fas fa-sign-out-alt"></i> Leave Party</button>
+                <button id="leavePartyBtn" onclick="window.location.reload()" class="btn" style="background: rgba(255,50,50,0.2); color: #ff6b6b; border: 1px solid rgba(255,50,50,0.3);"><i class="fas fa-sign-out-alt"></i> Leave Party</button>
             </div>
         </div>
 
@@ -456,6 +461,21 @@ export const UI = {
         } catch (e) { alert('Error joining room: ' + e); }
     },
 
+    deleteHistory(id) {
+        if (confirm('Remove this room from history?')) {
+            Party.deleteHistoryItem(id);
+            // Refresh the page or re-render
+            const params = window.location.hash.split('?')[1];
+            this.renderWatchPartyPage(params);
+        }
+    },
+
+    endParty() {
+        if (confirm('Are you sure you want to end the party for everyone?')) {
+            Party.endRoom();
+        }
+    },
+
     enterPartyRoom(roomId, isHost) {
         // Hide Landing, Show Room
         document.getElementById('party-landing').style.display = 'none';
@@ -483,6 +503,16 @@ export const UI = {
             if (controls) controls.style.display = 'block';
             const searchArea = document.getElementById('host-search-area');
             if (searchArea) searchArea.style.display = 'block';
+
+            // Change Leave to End
+            const leaveBtn = document.getElementById('leavePartyBtn');
+            if (leaveBtn) {
+                leaveBtn.innerHTML = '<i class="fas fa-power-off"></i> End Party';
+                leaveBtn.onclick = () => this.endParty();
+                leaveBtn.style.borderColor = '#d63031';
+                leaveBtn.style.color = '#d63031';
+                leaveBtn.style.background = 'rgba(214, 48, 49, 0.2)';
+            }
         }
 
         // Restore state if returning
@@ -556,19 +586,15 @@ export const UI = {
         // User Join/List Events
         Party.on('onUserJoin', (name) => {
             if (isHost && Party.currentMedia) {
-                // Determine duration for sync? Iframes can't
-                // Just resend current media state to new joiner
-                // Ideally this should be a direct message to the new peer, but broadcast works for now
-                setTimeout(() => {
-                    Party.sendSync('CHANGE_MEDIA', 0, Party.currentMedia);
+                // PartyManager (party.js) already sends the CHANGE_MEDIA state to the new user directly.
+                // We only need to sync the current time/play state if video is playing.
 
-                    // Also sync time/state if playing (for video elements)
-                    if (video && !video.paused) {
-                        setTimeout(() => {
-                            Party.sendSync('PLAY', video.currentTime);
-                        }, 500);
-                    }
-                }, 1000);
+                // Also sync time/state if playing (for video elements)
+                if (video && !video.paused) {
+                    setTimeout(() => {
+                        Party.sendSync('PLAY', video.currentTime);
+                    }, 500);
+                }
             }
         });
 
@@ -932,7 +958,7 @@ export const UI = {
         };
 
         // 1. Update Party State
-        Party.currentMedia = mediaState;
+        Party.updateMedia(mediaState);
         Party.isSelectingMedia = false;
 
         // 2. Broadcast to room
