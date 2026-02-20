@@ -521,116 +521,228 @@ export const UI = {
         app.innerHTML = createMovieRow(`Results for "${query}"`, res.results.filter(x => x.media_type === 'movie' || x.media_type === 'tv'));
     },
 
+    // --- Enhanced Live TV Logic ---
+
     async renderLiveTVPage() {
         app.innerHTML = '<div class="loading-spinner"></div>';
         const channels = await api.getLiveTV();
-        this.renderChannelGrid('Live TV (US)', channels);
+        this.renderCategoryPage('Live TV', channels, ['News', 'Entertainment', 'Movies', 'Music', 'Kids', 'Documentary']);
     },
 
     async renderSportsPage() {
         app.innerHTML = '<div class="loading-spinner"></div>';
         const channels = await api.getSports();
-        this.renderChannelGrid('Sports', channels);
+        this.renderCategoryPage('Sports', channels, ['Football', 'Soccer', 'Racing', 'Tennis', 'Golf', 'Basketball']);
     },
 
     async renderFightsPage() {
         app.innerHTML = '<div class="loading-spinner"></div>';
-        const channels = await api.getFights();
-        this.renderChannelGrid('Fight Sector', channels);
+        const [channels, vods] = await Promise.all([
+            api.getFights(),
+            api.getFightVODs()
+        ]);
+
+        this.renderCategoryPage('Fight Sector', channels, ['Boxing', 'MMA', 'Wrestling', 'UFC'], [
+            { title: 'Popular Fight Events (VOD)', items: vods }
+        ]);
     },
 
-    renderChannelGrid(title, channels) {
-        if (!channels || !channels.length) {
-            app.innerHTML = `<h2>No channels found for ${title}</h2>`;
+    renderCategoryPage(pageTitle, allChannels, categories, extraRows = []) {
+        if (!allChannels || !allChannels.length) {
+            app.innerHTML = `<h2>No channels found for ${pageTitle}</h2>`;
             return;
         }
 
-        // De-duplicate by URL to avoid same channel appearing multiple times
+        // De-duplicate
         const unique = [];
         const map = new Map();
-        for (const item of channels) {
+        for (const item of allChannels) {
             if (!map.has(item.url)) {
                 map.set(item.url, true);
                 unique.push(item);
             }
         }
 
-        app.innerHTML = `
-        <div class="container" style="padding-top: 100px;">
-            <h1 class="section-title">${title} <span style="font-size:1rem; opacity:0.7;">(${unique.length} Channels)</span></h1>
-            <div class="movie-grid">
-                ${unique.map(c => `
-                    <div class="movie-card" onclick="UI.renderLivePlayer('${encodeURIComponent(JSON.stringify(c))}')">
-                        <div class="poster-wrapper" style="background: #222; display: flex; align-items: center; justify-content: center; aspect-ratio: 16/9;">
-                            ${c.logo ? `<img src="${c.logo}" loading="lazy" style="object-fit: contain; width: 80%; height: 80%;" onerror="this.onerror=null;this.src='logo.png';">` : '<i class="fas fa-tv" style="font-size: 3rem; color: #444;"></i>'}
-                        </div>
-                        <div class="movie-info">
-                            <h3 class="movie-title">${c.name}</h3>
-                            <span class="rating" style="font-size: 0.8rem; color: #aaa;">${c.group}</span>
-                        </div>
-                    </div>
-                `).join('')}
+        // Popular Channels Filter (Curated List)
+        const popularKeywords = [
+            'HBO', 'Disney', 'BBC', 'CNN', 'Fox', 'ESPN', 'Sky', 'NBC', 'ABC', 'CBS',
+            'Nickelodeon', 'Cartoon Network', 'National Geographic', 'Discovery', 'History',
+            'AMC', 'Comedy Central', 'MTV', 'E!', 'Starz', 'Showtime', 'TNT', 'TBS', 'USA Network'
+        ];
+
+        const popularChannels = unique.filter(c => {
+            const name = c.name.toLowerCase();
+            return popularKeywords.some(k => name.includes(k.toLowerCase()));
+        });
+
+        // Hero Channel (Random from Popular or first 50)
+        const heroPool = popularChannels.length > 0 ? popularChannels : unique.slice(0, 50);
+        const heroChannel = heroPool[Math.floor(Math.random() * heroPool.length)];
+
+        let html = `
+        <header class="hero">
+            <div class="hero-backdrop" style="background: #000; display:flex; align-items:center; justify-content:center;">
+                ${heroChannel.logo ? `<img src="${heroChannel.logo}" style="height: 50%; opacity: 0.5;">` : ''}
+            </div>
+            <div class="hero-content">
+                <h1 class="hero-title">${heroChannel.name}</h1>
+                <div class="hero-meta">
+                    <span class="rating">${heroChannel.group}</span>
+                    <span>${pageTitle}</span>
+                </div>
+                <p class="hero-overview">Watch ${heroChannel.name} live now.</p>
+                <div class="hero-actions">
+                    <button onclick="UI.openModalPlayer('${encodeURIComponent(JSON.stringify(heroChannel))}')" class="btn btn-primary"><i class="fas fa-play"></i> Watch Live</button>
+                </div>
+            </div>
+        </header>
+
+        <div style="background: #222; padding: 10px; text-align: right; color: #aaa; font-size: 0.9rem;">
+             ${unique.length} Channels Available
+        </div>
+        `;
+
+        // Render Popular Channels Row
+        if (popularChannels.length > 0) {
+            html += this.createChannelRow('Popular Channels', popularChannels.slice(0, 20));
+        }
+
+        // Extra Rows (VODs)
+        if (extraRows && extraRows.length > 0) {
+            extraRows.forEach(row => {
+                if (row.items && row.items.length > 0) {
+                    html += createMovieRow(row.title, row.items);
+                }
+            });
+        }
+
+        // Render Category Rows (like Netflix)
+        categories.forEach(cat => {
+            const catChannels = unique.filter(c => c.group.toLowerCase().includes(cat.toLowerCase()));
+            if (catChannels.length > 0) {
+                html += this.createChannelRow(cat, catChannels.slice(0, 20)); // Limit to 20 per row for perf
+            }
+        });
+
+        // "Browse All" Grid with Filter
+        html += `
+        <section id="browse-all" style="padding-top: 40px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                <h2 class="section-title">Browse All Channels</h2>
+                <select id="channel-filter" onchange="UI.filterChannels(this.value)" style="background: #333; color: white; padding: 10px; border: none; border-radius: 5px;">
+                    <option value="All">All Categories</option>
+                    ${categories.map(c => `<option value="${c}">${c}</option>`).join('')}
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div id="channel-grid" class="movie-grid">
+                ${unique.map(c => this.createChannelCard(c)).join('')}
+            </div>
+        </section>
+        `;
+
+        // Store unique channels for filtering
+        this.currentChannels = unique;
+        app.innerHTML = html;
+        window.scrollTo(0, 0);
+    },
+
+    createChannelRow(title, channels) {
+        return `
+        <section>
+            <h2 class="section-title">${title}</h2>
+            <div class="movie-grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
+                ${channels.map(c => this.createChannelCard(c)).join('')}
+            </div>
+        </section>
+        `;
+    },
+
+    createChannelCard(c) {
+        return `
+        <div class="movie-card channel-item" data-group="${c.group}" onclick="UI.openModalPlayer('${encodeURIComponent(JSON.stringify(c))}')">
+            <div class="poster-wrapper" style="background: #222; display: flex; align-items: center; justify-content: center; aspect-ratio: 16/9;">
+                ${c.logo ? `<img src="${c.logo}" loading="lazy" style="object-fit: contain; width: 80%; height: 80%;" onerror="this.onerror=null;this.src='logo.png';">` : '<i class="fas fa-tv" style="font-size: 3rem; color: #444;"></i>'}
+            </div>
+            <div class="movie-info">
+                <h3 class="movie-title">${c.name}</h3>
+                <span class="rating" style="font-size: 0.8rem; color: #aaa;">${c.group}</span>
             </div>
         </div>
         `;
     },
 
-    renderLivePlayer(channelDataURI) {
+    filterChannels(category) {
+        const grid = document.getElementById('channel-grid');
+        if (!grid || !this.currentChannels) return;
+
+        let filtered = this.currentChannels;
+        if (category !== 'All') {
+            if (category === 'Other') {
+                filtered = filtered.filter(c => c.group === 'Uncategorized' || c.group === '');
+            } else {
+                filtered = filtered.filter(c => c.group.toLowerCase().includes(category.toLowerCase()));
+            }
+        }
+        grid.innerHTML = filtered.map(c => this.createChannelCard(c)).join('');
+    },
+
+    // --- Modal Player ---
+
+    openModalPlayer(channelDataURI) {
         const c = JSON.parse(decodeURIComponent(channelDataURI));
+        const modal = document.getElementById('video-modal');
+        const video = document.getElementById('modal-video');
+        const info = document.getElementById('modal-info');
 
-        app.innerHTML = `
-        <div class="player-container" style="padding-top: 100px;">
-             <div style="margin-bottom: 20px;">
-                <a href="javascript:history.back()" style="color:white; text-decoration:none;"><i class="fas fa-arrow-left"></i> Back</a>
-                <h1 style="margin-top: 10px;">${c.name}</h1>
-                <p style="color: #aaa;">${c.group}</p>
-            </div>
+        if (!modal || !video) return;
 
-            <div class="video-wrapper" style="background: #000; aspect-ratio: 16/9; position: relative;">
-                <video id="video" controls style="width: 100%; height: 100%;"></video>
-            </div>
-            
-            <div style="margin-top: 20px; padding: 20px; background: #222; border-radius: 8px;">
-                <p><i class="fas fa-info-circle"></i> If stream fails to load, the channel might be offline or geo-blocked.</p>
-                <div style="margin-top: 10px; word-break: break-all; color: #555; font-size: 0.8rem;">Stream URL: ${c.url}</div>
-            </div>
-        </div>
-        `;
+        modal.style.display = 'flex';
+        info.innerHTML = `<strong>${c.name}</strong><br><span style="font-size:0.8em; color:#ccc;">${c.group}</span>`;
 
-        const video = document.getElementById('video');
         if (Hls.isSupported()) {
+            if (window.hls) window.hls.destroy(); // Destroy previous instance
+
             const hls = new Hls();
+            window.hls = hls; // Keep reference to destroy later
             hls.loadSource(c.url);
             hls.attachMedia(video);
             hls.on(Hls.Events.MANIFEST_PARSED, function () {
                 video.play().catch(e => console.log('Autoplay blocked', e));
             });
-
-            // Handle error recovery
             hls.on(Hls.Events.ERROR, function (event, data) {
                 if (data.fatal) {
                     switch (data.type) {
                         case Hls.ErrorTypes.NETWORK_ERROR:
-                            console.log("fatal network error encountered, try to recover");
                             hls.startLoad();
                             break;
                         case Hls.ErrorTypes.MEDIA_ERROR:
-                            console.log("fatal media error encountered, try to recover");
                             hls.recoverMediaError();
                             break;
                         default:
-                            console.log("cannot recover");
                             hls.destroy();
                             break;
                     }
                 }
             });
-
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
             video.src = c.url;
-            video.addEventListener('loadedmetadata', function () {
-                video.play();
-            });
+            video.play();
+        }
+    },
+
+    closeModalPlayer() {
+        const modal = document.getElementById('video-modal');
+        const video = document.getElementById('modal-video');
+
+        if (modal) modal.style.display = 'none';
+        if (video) {
+            video.pause();
+            video.src = '';
+            if (window.hls) {
+                window.hls.destroy();
+                window.hls = null;
+            }
         }
     }
 };

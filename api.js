@@ -99,9 +99,20 @@ class TMDB {
     }
 
     async getLiveTV() {
-        // US Channels
-        const channels = await this.fetchM3U('https://iptv-org.github.io/iptv/countries/us.m3u');
-        return channels;
+        const urls = [
+            'https://iptv-org.github.io/iptv/countries/us.m3u',
+            'https://iptv-org.github.io/iptv/countries/uk.m3u',
+            'https://iptv-org.github.io/iptv/countries/ca.m3u',
+            'https://iptv-org.github.io/iptv/countries/au.m3u'
+        ];
+
+        try {
+            const results = await Promise.all(urls.map(url => this.fetchM3U(url)));
+            return results.flat();
+        } catch (e) {
+            console.error('Error fetching live TV playlists:', e);
+            return [];
+        }
     }
 
     async getSports() {
@@ -119,6 +130,36 @@ class TMDB {
             const group = c.group.toLowerCase();
             return fightKeywords.some(k => name.includes(k) || group.includes(k));
         });
+    }
+
+    async getFightVODs() {
+        try {
+            const queries = ['UFC', 'WWE', 'Boxing'];
+            const promises = queries.map(q => this.search(q));
+            const results = await Promise.all(promises);
+
+            // Flatten and unique by ID
+            const all = results.flatMap(r => r.results).filter(x => x && x.media_type !== 'person');
+            const unique = [];
+            const map = new Map();
+
+            for (const item of all) {
+                if (!map.has(item.id)) {
+                    map.set(item.id, true);
+                    unique.push(item);
+                }
+            }
+
+            // Sort by date descending
+            return unique.sort((a, b) => {
+                const dateA = a.release_date || a.first_air_date || '';
+                const dateB = b.release_date || b.first_air_date || '';
+                return dateB.localeCompare(dateA);
+            });
+        } catch (e) {
+            console.error('Error fetching fight VODs:', e);
+            return [];
+        }
     }
 }
 
