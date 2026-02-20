@@ -45,6 +45,11 @@ export class PartyManager {
     endRoom() {
         if (!this.isHost) return;
         this.broadcast({ type: 'ROOM_ENDED' });
+
+        // Clear Persistence
+        localStorage.removeItem('party_role');
+        localStorage.removeItem('party_host_id');
+
         setTimeout(() => {
             this.connections.forEach(conn => conn.close());
             this.peer.destroy();
@@ -53,10 +58,16 @@ export class PartyManager {
     }
 
     // Initialize Peer
-    async init() {
+    async init(customId = null) {
         return new Promise((resolve, reject) => {
-            if (window.peer) this.peer = window.peer;
-            else this.peer = new Peer(null, { debug: 2 });
+            if (window.peer && !window.peer.destroyed) {
+                this.peer = window.peer;
+                this.myId = this.peer.id;
+                resolve(this.myId);
+                return;
+            }
+
+            this.peer = new Peer(customId, { debug: 2 });
 
             this.peer.on('open', (id) => {
                 console.log('My peer ID is: ' + id);
@@ -83,17 +94,37 @@ export class PartyManager {
         await this.init();
         this.hostId = this.myId; // Set hostId for self
         this.addToHistory(this.myId, 'Host');
+
+        // Persist Host State
+        localStorage.setItem('party_role', 'Host');
+        localStorage.setItem('party_host_id', this.myId);
+
         return this.myId;
     }
 
     // Join a Room (Client)
     async joinRoom(hostId, username) {
         this.username = username || this.username;
-        this.isHost = false;
         this.hostId = hostId;
-        await this.init();
-        this.connectToPeer(hostId);
-        this.addToHistory(hostId, 'Guest');
+
+        // Check for Host Reconnection
+        if (localStorage.getItem('party_role') === 'Host' && localStorage.getItem('party_host_id') === hostId) {
+            this.isHost = true;
+            this.myId = hostId; // Reclaim ID (requires PeerJS to allow same ID, or new ID but role persists)
+            // Actually, PeerJS won't let us steal the old ID easily if it's still "alive" on server,
+            // but if we are the host reloading, the old one died.
+            await this.init(hostId);
+            this.addToHistory(hostId, 'Host');
+        } else {
+            this.isHost = false;
+            await this.init();
+            this.connectToPeer(hostId);
+            this.addToHistory(hostId, 'Guest');
+
+            // Clear potential old host data if joining as guest
+            localStorage.removeItem('party_role');
+            localStorage.removeItem('party_host_id');
+        }
     }
 
     connectToPeer(peerId) {

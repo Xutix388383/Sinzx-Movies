@@ -194,6 +194,23 @@ export const UI = {
     },
 
     async renderWatchPartyPage(params) {
+        // Auto-Rejoin as Host (Bypass Landing)
+        const savedHostId = localStorage.getItem('party_host_id');
+        const savedRole = localStorage.getItem('party_role');
+        const joinParam = params ? new URLSearchParams(params).get('join') : null;
+
+        if (savedRole === 'Host' && savedHostId && !joinParam && !Party.roomId) {
+            // Check if we are already connecting/connected to avoid loops
+            if (Party.hostId !== savedHostId) {
+                console.log('Auto-rejoining as Host:', savedHostId);
+                // We must await this, but we can't block the UI thread completely,
+                // so we'll show a loading indicator and return.
+                app.innerHTML = '<div class="loading-spinner"></div><p style="text-align:center;color:white;margin-top:20px">Restoring Session...</p>';
+                await this.joinParty(savedHostId);
+                return;
+            }
+        }
+
         // Parse params if any
         let joinRoomId = '';
         if (params) {
@@ -397,6 +414,15 @@ export const UI = {
 
                 <!-- Host Controls (Media Selection) -->
                 <div id="host-search-area" style="display: none;">
+                    <!-- Master Sync Controls -->
+                     <div class="glass-card" style="padding: 15px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; justify-content: center; background: rgba(0,0,0,0.5);">
+                        <span style="color: #aaa; font-size: 0.8rem; margin-right: 10px;">MASTER SYNC:</span>
+                        <button onclick="Party.sendSync('PLAY', 0); Party.sendMessage('System: Host pressed PLAY')" class="btn" style="padding: 5px 15px; background: #2ecc71;"><i class="fas fa-play"></i></button>
+                        <button onclick="Party.sendSync('PAUSE', 0); Party.sendMessage('System: Host pressed PAUSE')" class="btn" style="padding: 5px 15px; background: #e17055;"><i class="fas fa-pause"></i></button>
+                        <button onclick="Party.sendSync('SEEK', -10); Party.sendMessage('System: Host skipped -10s')" class="btn" style="padding: 5px 15px; background: #636e72;">-10s</button>
+                        <button onclick="Party.sendSync('SEEK', 10); Party.sendMessage('System: Host skipped +10s')" class="btn" style="padding: 5px 15px; background: #636e72;">+10s</button>
+                    </div>
+
                     <div class="glass-card" style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
                         <div>
                             <h3 style="margin-bottom: 5px;">Select Content</h3>
@@ -452,12 +478,17 @@ export const UI = {
     },
 
     async joinParty(idOverride) {
-        const name = document.getElementById('joinName').value || 'Guest';
-        const id = idOverride || document.getElementById('roomCode').value;
+        const nameInput = document.getElementById('joinName');
+        const savedName = localStorage.getItem('party_username');
+        const name = nameInput ? nameInput.value : (savedName || 'Guest');
+
+        const id = idOverride || (document.getElementById('roomCode') ? document.getElementById('roomCode').value : '');
+
         if (!id) return alert('Please enter a Room ID');
         try {
             await Party.joinRoom(id, name);
-            this.enterPartyRoom(id, false);
+            // Pass Party.isHost (which might be true if we reconnected as valid host)
+            this.enterPartyRoom(id, Party.isHost);
         } catch (e) { alert('Error joining room: ' + e); }
     },
 
