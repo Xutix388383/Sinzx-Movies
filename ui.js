@@ -416,13 +416,12 @@ export const UI = {
                 <!-- Host Controls (Media Selection) -->
                 <div id="host-search-area" style="display: none;">
                     <!-- Master Sync Controls -->
-                    <!-- Master Sync Controls -->
                      <div class="glass-card" style="padding: 15px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; justify-content: center; background: rgba(0,0,0,0.5);">
-                        <span style="color: #aaa; font-size: 0.8rem; margin-right: 10px;">MASTER SYNC:</span>
-                        <button onclick="Party.sendSync('MASTER_PLAY', 0); Party.sendMessage('System: Host pressed PLAY')" class="btn" style="padding: 5px 15px; background: #2ecc71;"><i class="fas fa-play"></i></button>
-                        <button onclick="Party.sendSync('MASTER_PAUSE', 0); Party.sendMessage('System: Host pressed PAUSE')" class="btn" style="padding: 5px 15px; background: #e17055;"><i class="fas fa-pause"></i></button>
-                        <button onclick="Party.sendSync('MASTER_SEEK', -10); Party.sendMessage('System: Host skipped -10s')" class="btn" style="padding: 5px 15px; background: #636e72;">-10s</button>
-                        <button onclick="Party.sendSync('MASTER_SEEK', 10); Party.sendMessage('System: Host skipped +10s')" class="btn" style="padding: 5px 15px; background: #636e72;">+10s</button>
+                        <span style="color: #aaa; font-size: 0.8rem; margin-right: 10px;">PARTY SYNC:</span>
+                        <button onclick="Party.sendSync('MASTER_PLAY', 0); Party.sendMessage('System: User pressed PLAY')" class="btn" style="padding: 5px 15px; background: #2ecc71;"><i class="fas fa-play"></i></button>
+                        <button onclick="Party.sendSync('MASTER_PAUSE', 0); Party.sendMessage('System: User pressed PAUSE')" class="btn" style="padding: 5px 15px; background: #e17055;"><i class="fas fa-pause"></i></button>
+                        <button onclick="Party.sendSync('MASTER_SEEK', -10); Party.sendMessage('System: User skipped -10s')" class="btn" style="padding: 5px 15px; background: #636e72;">-10s</button>
+                        <button onclick="Party.sendSync('MASTER_SEEK', 10); Party.sendMessage('System: User skipped +10s')" class="btn" style="padding: 5px 15px; background: #636e72;">+10s</button>
                     </div>
 
                     <div class="glass-card" style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
@@ -488,7 +487,7 @@ export const UI = {
     },
 
     startPartySelection() {
-        if (!Party.isHost) return alert('Only the host can select media.');
+        // if (!Party.isHost) return alert('Only the host can select media.');
         Party.isSelectingMedia = true;
         window.location.hash = '#home';
         // Maybe show a toast or modal?
@@ -560,12 +559,14 @@ export const UI = {
 
         this.setupPartyEvents(isHost);
 
-        // Show Host Controls if host
+        // Show Controls for Everyone (Shared Control)
+        const searchArea = document.getElementById('host-search-area');
+        if (searchArea) searchArea.style.display = 'block';
+
+        // Host Specifics (Ending Party)
         if (isHost) {
             const controls = document.getElementById('host-controls');
             if (controls) controls.style.display = 'block';
-            const searchArea = document.getElementById('host-search-area');
-            if (searchArea) searchArea.style.display = 'block';
 
             // Change Leave to End
             const leaveBtn = document.getElementById('leavePartyBtn');
@@ -674,7 +675,9 @@ export const UI = {
 
         Party.on('onSync', (data) => {
             // console.log('Sync Event:', data);
-            if (isHost) return; // Host ignores sync (they are source of truth)
+
+            // SHARED CONTROL: Everyone listens to sync!
+            // if (isHost) return; 
 
             if (!video) return; // Safety check
 
@@ -698,39 +701,58 @@ export const UI = {
                     chat.scrollTop = chat.scrollHeight;
                 }
 
-            } else if (data.action === 'PLAY') {
-                if (video.style.display !== 'none') {
-                    if (video.paused) video.play();
-                    if (timeDiff > 2) video.currentTime = data.time;
-                }
-            } else if (data.action === 'PAUSE') {
-                if (video.style.display !== 'none') {
-                    video.pause();
-                    video.currentTime = data.time;
-                }
-            } else if (data.action === 'SEEK') {
-                if (video.style.display !== 'none') video.currentTime = data.time;
-            }
+            } else {
+                // Set Remote Flag to prevents loops
+                this.isRemoteUpdate = true;
 
-            // Master Controls (Relative/Blind)
-            else if (data.action === 'MASTER_PLAY') {
-                if (video.style.display !== 'none') video.play();
-            } else if (data.action === 'MASTER_PAUSE') {
-                if (video.style.display !== 'none') video.pause();
-            } else if (data.action === 'MASTER_SEEK') {
-                if (video.style.display !== 'none') video.currentTime += data.time;
+                if (data.action === 'PLAY') {
+                    if (video.style.display !== 'none') {
+                        if (video.paused) video.play();
+                        if (timeDiff > 2) video.currentTime = data.time;
+                    }
+                } else if (data.action === 'PAUSE') {
+                    if (video.style.display !== 'none') {
+                        video.pause();
+                        video.currentTime = data.time; // Snap to pause time
+                    }
+                } else if (data.action === 'SEEK') {
+                    if (video.style.display !== 'none') video.currentTime = data.time;
+                }
+
+                // Master Controls (Relative/Blind)
+                else if (data.action === 'MASTER_PLAY') {
+                    if (video.style.display !== 'none') video.play();
+                } else if (data.action === 'MASTER_PAUSE') {
+                    if (video.style.display !== 'none') video.pause();
+                } else if (data.action === 'MASTER_SEEK') {
+                    if (video.style.display !== 'none') video.currentTime += data.time;
+                }
+
+                // Reset Flag after short delay
+                setTimeout(() => this.isRemoteUpdate = false, 500);
             }
         });
 
-        // Host Player Events
-        if (isHost) {
-            video.addEventListener('play', () => Party.sendSync('PLAY', video.currentTime));
-            video.addEventListener('pause', () => Party.sendSync('PAUSE', video.currentTime));
-            video.addEventListener('seeked', () => Party.sendSync('SEEK', video.currentTime));
+        // Shared Player Events (Everyone broadcasts)
+        const broadcastSync = (action) => {
+            // Prevent broadcasting if this event was triggered by a remote sync
+            if (this.isRemoteUpdate) return;
 
-            // Periodic Sync (every 5s)
+            if (video) Party.sendSync(action, video.currentTime);
+        };
+
+        if (video) {
+            video.addEventListener('play', () => broadcastSync('PLAY'));
+            video.addEventListener('pause', () => broadcastSync('PAUSE'));
+            video.addEventListener('seeked', () => broadcastSync('SEEK'));
+        }
+
+        // Host Periodic Sync (Keep this for drift correction, but maybe less frequent?)
+        if (isHost) {
             setInterval(() => {
-                if (!video.paused) Party.sendSync('PLAY', video.currentTime);
+                if (video && !video.paused && !this.isRemoteUpdate) {
+                    Party.sendSync('PLAY', video.currentTime);
+                }
             }, 5000);
         }
     },

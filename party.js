@@ -207,6 +207,7 @@ export class PartyManager {
     sendSync(action, time, state) {
         const msg = { type: 'SYNC', action, time, state };
         this.broadcast(msg);
+        if (this.callbacks.onSync) this.callbacks.onSync(msg);
     }
 
     // Broadcast to all connected peers
