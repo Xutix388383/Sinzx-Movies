@@ -157,7 +157,7 @@ export class PartyManager {
     }
 
     handleData(data, senderConn) {
-        console.log('Received:', data);
+        console.log('Received:', data.type, 'from', senderConn.peer);
 
         switch (data.type) {
             case 'JOIN':
@@ -180,8 +180,12 @@ export class PartyManager {
                 }
                 break;
             case 'SYNC':
+                console.log('Processing SYNC:', data.action);
                 this.callbacks.onSync(data);
-                if (this.isHost) this.broadcast(data, senderConn);
+                if (this.isHost) {
+                    console.log('Host Relaying SYNC to others');
+                    this.broadcast(data, senderConn);
+                }
                 break;
             case 'ROOM_ENDED':
                 alert('The host has ended the session.');
@@ -205,6 +209,7 @@ export class PartyManager {
 
     // Send Sync Event (Play, Pause, Seek)
     sendSync(action, time, state) {
+        console.log('Sending SYNC:', action);
         const msg = { type: 'SYNC', action, time, state };
         this.broadcast(msg);
         if (this.callbacks.onSync) this.callbacks.onSync(msg);
@@ -212,6 +217,7 @@ export class PartyManager {
 
     // Broadcast to all connected peers
     broadcast(data, excludeConn = null) {
+        console.log('Broadcasting:', data.type, 'Targets:', this.connections.length);
         this.connections.forEach(conn => {
             if (conn !== excludeConn && conn.open) {
                 conn.send(data);
