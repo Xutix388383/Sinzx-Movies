@@ -223,8 +223,7 @@ export const UI = {
                     border-radius: 16px;
                     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
                 }
-
-                /* Chat Bubbles */
+            <div id="party-landing" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
                 .chat-bubble {
                     padding: 10px 15px;
                     border-radius: 15px;
@@ -304,107 +303,94 @@ export const UI = {
                     </div>
                 </div>
 
-                <!-- Live / Public Rooms (Mock + Recent) -->
-                <div style="margin-top: 50px; width: 100%; max-width: 800px;">
-                    <h2 style="font-size: 1.5rem; margin-bottom: 20px; color: #ccc;">Live Public Rooms</h2>
+                <!-- Recent Rooms (History) -->
+            <div style="margin-top: 50px; width: 100%; max-width: 800px;">
+                <h2 style="font-size: 1.5rem; margin-bottom: 20px; color: #ccc;">Recent Rooms</h2>
+                ${Party.history.length === 0 ? '<p style="color: #666;">No recent rooms found.</p>' : `
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
-                        <!-- Mock Public Rooms -->
-                        <div class="glass-card" style="padding: 15px; cursor: pointer; border: 1px solid rgba(108, 92, 231, 0.2);" onclick="document.getElementById('roomCode').value='public-lounge'; document.getElementById('joinName').focus();">
-                             <div style="color: #6c5ce7; font-weight: bold; margin-bottom: 5px;">🍿 General Lounge</div>
-                             <div style="font-size: 0.8rem; color: #aaa;">124 watching</div>
+                        ${Party.history.map(room => `
+                        <div class="glass-card" style="padding: 15px; cursor: pointer; border: 1px solid rgba(108, 92, 231, 0.2);" onclick="document.getElementById('roomCode').value='${room.id}'; document.getElementById('joinName').focus();">
+                             <div style="color: #6c5ce7; font-weight: bold; margin-bottom: 5px; overflow: hidden; text-overflow: ellipsis;">${room.id}</div>
+                             <div style="font-size: 0.8rem; color: #aaa;">Role: ${room.role}</div>
+                             <div style="font-size: 0.7rem; color: #666;">${new Date(room.timestamp).toLocaleDateString()}</div>
                         </div>
-                        <div class="glass-card" style="padding: 15px; cursor: pointer; border: 1px solid rgba(108, 92, 231, 0.2);" onclick="document.getElementById('roomCode').value='anime-club'; document.getElementById('joinName').focus();">
-                             <div style="color: #fab1a0; font-weight: bold; margin-bottom: 5px;">⛩️ Anime Club</div>
-                             <div style="font-size: 0.8rem; color: #aaa;">45 watching</div>
-                        </div>
-                         <div class="glass-card" style="padding: 15px; cursor: pointer; border: 1px solid rgba(108, 92, 231, 0.2);" onclick="document.getElementById('roomCode').value='horror-nights'; document.getElementById('joinName').focus();">
-                             <div style="color: #ff7675; font-weight: bold; margin-bottom: 5px;">👻 Horror Nights</div>
-                             <div style="font-size: 0.8rem; color: #aaa;">89 watching</div>
-                        </div>
+                        `).join('')}
                     </div>
-                    
-                    ${Party.roomId ? `
-                    <div style="margin-top: 30px; text-align: center;">
-                        <p style="color: #a29bfe; margin-bottom: 10px;">You have an active session!</p>
-                        <button onclick="UI.enterPartyRoom('${Party.roomId}', ${Party.isHost})" class="btn btn-primary" style="padding: 10px 30px;">
-                            <i class="fas fa-undo"></i> Rejoin Room: ${Party.roomId}
-                        </button>
-                    </div>
-                    ` : ''}
-                </div>
+                    `}
             </div>
+            </div >
 
-            <!-- Room State -->
-            <div id="party-room" style="display: none; width: 100%; max-width: 1600px; margin: 0 auto;">
-                <!-- Header -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <div class="glass-card" style="padding: 10px 20px; display: flex; align-items: center; gap: 15px;">
-                        <span style="color: #aaa; font-size: 0.9rem;">ROOM ID</span>
-                        <code id="currentRoomId" style="color: #6c5ce7; font-size: 1.1rem; letter-spacing: 1px;">...</code>
-                        <button onclick="navigator.clipboard.writeText(document.getElementById('currentRoomId').innerText)" style="background: none; border: none; color: white; cursor: pointer; opacity: 0.7; transition: opacity 0.3s;"><i class="fas fa-copy"></i></button>
-                    </div>
-                    <div>
-                        <button onclick="window.location.reload()" class="btn" style="background: rgba(255,50,50,0.2); color: #ff6b6b; border: 1px solid rgba(255,50,50,0.3);"><i class="fas fa-sign-out-alt"></i> Leave Party</button>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 350px; gap: 30px; height: 75vh;">
-                    
-                    <!-- Player Section -->
-                    <div style="display: flex; flex-direction: column; gap: 20px;">
-                        <div class="glass-card player-glow" style="flex: 1; overflow: hidden; position: relative; background: #000; display: flex; align-items: center; justify-content: center;">
-                            <!-- Video Player (Direct) -->
-                            <video id="party-video" controls style="width: 100%; height: 100%; object-fit: contain; display: none;"></video>
-                            
-                            <!-- IFrame Player (Embeds) -->
-                            <iframe id="party-iframe" style="width: 100%; height: 100%; border: none; display: none;" allowfullscreen></iframe>
-                            
-                            <!-- Placeholder / Empty State -->
-                            <div id="party-placeholder" style="position: absolute; text-align: center; color: rgba(255,255,255,0.5);">
-                                <i class="fas fa-film" style="font-size: 5rem; margin-bottom: 20px; opacity: 0.5;"></i>
-                                <h2 style="font-weight: 300;">Waiting for media...</h2>
-                                <p id="host-controls" style="display:none; color: #a29bfe; margin-top: 10px;">You are the host.<br>Click below to select content from library.</p>
-                            </div>
-                        </div>
-
-                        <!-- Host Controls (Media Selection) -->
-                        <div id="host-search-area" style="display: none;">
-                            <div class="glass-card" style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
-                                <div>
-                                    <h3 style="margin-bottom: 5px;">Select Content</h3>
-                                    <p style="color: #aaa; font-size: 0.9em;">Browse the library and bring a movie/show here.</p>
-                                </div>
-                                <button onclick="UI.startPartySelection()" class="btn btn-primary" style="box-shadow: 0 5px 15px rgba(108, 92, 231, 0.4);">
-                                    <i class="fas fa-search"></i> Browse Library
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Sidebar (Chat) -->
-                    <div class="glass-card" style="display: flex; flex-direction: column; overflow: hidden; height: 100%;">
-                        <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                            <h3 style="margin: 0;">Party Chat</h3>
-                        </div>
-                        
-                        <div id="chat-messages" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
-                            <div style="text-align: center; color: rgba(255,255,255,0.3); font-size: 0.9rem; margin-top: auto;">
-                                <i class="fas fa-lock"></i> Messages are encrypted (P2P)
-                            </div>
-                        </div>
-
-                        <div style="padding: 20px; background: rgba(0,0,0,0.2); ">
-                            <div style="display: flex; gap: 10px;">
-                                <input type="text" id="chatInput" placeholder="Type a message..." style="flex: 1; padding: 12px; border-radius: 20px; border: none; background: rgba(255,255,255,0.1); color: white;" onkeypress="if(event.key==='Enter') UI.sendChatMessage()">
-                                <button onclick="UI.sendChatMessage()" style="width: 40px; height: 40px; border-radius: 50%; border: none; background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; cursor: pointer; transition: transform 0.2s;"><i class="fas fa-paper-plane"></i></button>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
+            < !--Room State-- >
+    <div id="party-room" style="display: none; width: 100%; max-width: 1600px; margin: 0 auto;">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div class="glass-card" style="padding: 10px 20px; display: flex; align-items: center; gap: 15px;">
+                <span style="color: #aaa; font-size: 0.9rem;">ROOM ID</span>
+                <code id="currentRoomId" style="color: #6c5ce7; font-size: 1.1rem; letter-spacing: 1px;">...</code>
+                <button onclick="navigator.clipboard.writeText(document.getElementById('currentRoomId').innerText)" style="background: none; border: none; color: white; cursor: pointer; opacity: 0.7; transition: opacity 0.3s;"><i class="fas fa-copy"></i></button>
+            </div>
+            <div>
+                <button onclick="window.location.reload()" class="btn" style="background: rgba(255,50,50,0.2); color: #ff6b6b; border: 1px solid rgba(255,50,50,0.3);"><i class="fas fa-sign-out-alt"></i> Leave Party</button>
             </div>
         </div>
-        `;
+
+        <div style="display: grid; grid-template-columns: 1fr 350px; gap: 30px; height: 75vh;">
+
+            <!-- Player Section -->
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <div class="glass-card player-glow" style="flex: 1; overflow: hidden; position: relative; background: #000; display: flex; align-items: center; justify-content: center;">
+                    <!-- Video Player (Direct) -->
+                    <video id="party-video" controls style="width: 100%; height: 100%; object-fit: contain; display: none;"></video>
+
+                    <!-- IFrame Player (Embeds) -->
+                    <iframe id="party-iframe" style="width: 100%; height: 100%; border: none; display: none;" allowfullscreen></iframe>
+
+                    <!-- Placeholder / Empty State -->
+                    <div id="party-placeholder" style="position: absolute; text-align: center; color: rgba(255,255,255,0.5);">
+                        <i class="fas fa-film" style="font-size: 5rem; margin-bottom: 20px; opacity: 0.5;"></i>
+                        <h2 style="font-weight: 300;">Waiting for media...</h2>
+                        <p id="host-controls" style="display:none; color: #a29bfe; margin-top: 10px;">You are the host.<br>Click below to select content from library.</p>
+                    </div>
+                </div>
+
+                <!-- Host Controls (Media Selection) -->
+                <div id="host-search-area" style="display: none;">
+                    <div class="glass-card" style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <h3 style="margin-bottom: 5px;">Select Content</h3>
+                            <p style="color: #aaa; font-size: 0.9em;">Browse the library and bring a movie/show here.</p>
+                        </div>
+                        <button onclick="UI.startPartySelection()" class="btn btn-primary" style="box-shadow: 0 5px 15px rgba(108, 92, 231, 0.4);">
+                            <i class="fas fa-search"></i> Browse Library
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar (Chat) -->
+            <div class="glass-card" style="display: flex; flex-direction: column; overflow: hidden; height: 100%;">
+                <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <h3 style="margin: 0;">Party Chat</h3>
+                </div>
+
+                <div id="chat-messages" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="text-align: center; color: rgba(255,255,255,0.3); font-size: 0.9rem; margin-top: auto;">
+                        <i class="fas fa-lock"></i> Messages are encrypted (P2P)
+                    </div>
+                </div>
+
+                <div style="padding: 20px; background: rgba(0,0,0,0.2); ">
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="chatInput" placeholder="Type a message..." style="flex: 1; padding: 12px; border-radius: 20px; border: none; background: rgba(255,255,255,0.1); color: white;" onkeypress="if(event.key==='Enter') UI.sendChatMessage()">
+                            <button onclick="UI.sendChatMessage()" style="width: 40px; height: 40px; border-radius: 50%; border: none; background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; cursor: pointer; transition: transform 0.2s;"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+        </div >
+    `;
     },
 
     startPartySelection() {
@@ -480,7 +466,7 @@ export const UI = {
         Party.on('onMessage', (msg) => {
             const isSelf = msg.name === Party.username;
             const div = document.createElement('div');
-            div.className = `chat-bubble ${isSelf ? 'chat-self' : 'chat-other'}`;
+            div.className = `chat - bubble ${isSelf ? 'chat-self' : 'chat-other'} `;
 
             // Name/Meta
             const meta = document.createElement('div');
@@ -508,7 +494,7 @@ export const UI = {
             div.style.color = 'rgba(255,255,255,0.4)';
             div.style.margin = '10px 0';
             div.style.fontStyle = 'italic';
-            div.innerHTML = `<i class="fas fa-info-circle"></i> ${msg}`;
+            div.innerHTML = `< i class="fas fa-info-circle" ></i > ${msg} `;
             chat.appendChild(div);
             chat.scrollTop = chat.scrollHeight;
         });
@@ -526,7 +512,7 @@ export const UI = {
         });
 
         Party.on('onSync', (data) => {
-            // Received sync command
+            // console.log('Sync Event:', data);
             if (isHost) return; // Host ignores sync (they are source of truth)
 
             // Allow slight variance (2s) to prevent jitter loops
@@ -536,11 +522,14 @@ export const UI = {
                 this.updatePartyPlayer(data.state);
                 Party.currentMedia = data.state; // Update local state for clients too
 
-                // System notification in chat
+                // Add system message about media change
                 const div = document.createElement('div');
+                div.className = 'chat-bubble';
+                div.style.background = 'rgba(255,255,255,0.05)';
+                div.style.color = '#aaa';
                 div.style.textAlign = 'center';
-                div.style.margin = '15px 0';
-                div.innerHTML = `<span style="background: rgba(108, 92, 231, 0.2); color: #a29bfe; padding: 5px 10px; border-radius: 20px; font-size: 0.8em;">Host changed media</span>`;
+                div.style.fontSize = '0.8rem';
+                div.innerText = `Media changed to: ${data.state.title || 'Unknown'}`;
                 chat.appendChild(div);
                 chat.scrollTop = chat.scrollHeight;
 
@@ -596,7 +585,7 @@ export const UI = {
 
         const heroMovie = trending.results[0];
         const html = `
-        <header class="hero">
+    < header class="hero" >
             <img src="${CONFIG.IMAGE_BASE_URL}${heroMovie.backdrop_path}" class="hero-backdrop" style="transition: opacity 0.5s ease-in-out;">
             <div class="hero-content" style="transition: opacity 0.5s ease-in-out;">
                 <h1 class="hero-title">${heroMovie.title || heroMovie.name}</h1>
@@ -616,18 +605,18 @@ export const UI = {
             Logged in as <strong>${user.name}</strong> • <a href="#" onclick="event.preventDefault(); Auth.logout();" style="color: white; margin-left:10px;">Switch User</a>
         </div>
 
-         <!-- Ad Blocker Warning Banner (Purple Theme) -->
-        <div style="background: linear-gradient(90deg, #6c5ce7, #a29bfe); padding: 15px; text-align: center; margin: 20px auto; max-width: var(--container-width); border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 15px; color: white; font-weight: bold; box-shadow: 0 5px 15px rgba(108, 92, 231, 0.3);">
-            <i class="fas fa-shield-alt" style="font-size: 1.5rem;"></i>
-            <span>Pro Tip: Streaming servers may show ads. Use an Ad Blocker for the best experience!</span>
-            <a href="#adblock" class="btn" style="background: white; color: #6c5ce7; padding: 8px 20px; font-size: 0.9rem; border: none;">Get Protected</a>
-        </div>
+         <!--Ad Blocker Warning Banner(Purple Theme)-- >
+    <div style="background: linear-gradient(90deg, #6c5ce7, #a29bfe); padding: 15px; text-align: center; margin: 20px auto; max-width: var(--container-width); border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 15px; color: white; font-weight: bold; box-shadow: 0 5px 15px rgba(108, 92, 231, 0.3);">
+        <i class="fas fa-shield-alt" style="font-size: 1.5rem;"></i>
+        <span>Pro Tip: Streaming servers may show ads. Use an Ad Blocker for the best experience!</span>
+        <a href="#adblock" class="btn" style="background: white; color: #6c5ce7; padding: 8px 20px; font-size: 0.9rem; border: none;">Get Protected</a>
+    </div>
         
         ${user.history && user.history.length > 0 ? createMovieRow(`Continue Watching (${user.name})`, user.history) : ''}
         ${createMovieRow('Trending Now', trending.results)}
         ${createMovieRow('Popular Movies', popular.results)}
-        <div style="text-align:center; margin: 50px;"><a href="#movies" class="btn">Browse All Movies</a></div>
-        `;
+<div style="text-align:center; margin: 50px;"><a href="#movies" class="btn">Browse All Movies</a></div>
+`;
 
         // Add logout global
         window.Auth = Auth;
@@ -647,7 +636,7 @@ export const UI = {
         const heroItem = items[0];
 
         app.innerHTML = `
-        <header class="hero">
+    < header class="hero" >
             <img src="${CONFIG.IMAGE_BASE_URL}${heroItem.backdrop_path}" class="hero-backdrop" style="transition: opacity 0.5s ease-in-out;">
             <div class="hero-content" style="transition: opacity 0.5s ease-in-out;">
                 <h1 class="hero-title">${heroItem.title || heroItem.name}</h1>
@@ -669,7 +658,7 @@ export const UI = {
                 ${items.map(m => createCard(m)).join('')}
             </div>
         </div>
-        `;
+`;
         startHeroSlider(items);
     },
 
@@ -680,10 +669,10 @@ export const UI = {
 
         const isMovie = type === 'movie';
         const title = item.title || item.name;
-        const watchLink = isMovie ? `#watch/${item.id}` : `#watch/tv/${item.id}/1/1`; // S1E1 default
+        const watchLink = isMovie ? `#watch / ${item.id} ` : `#watch / tv / ${item.id} /1/1`; // S1E1 default
 
         app.innerHTML = `
-        <div class="hero">
+    < div class="hero" >
             <img src="${CONFIG.IMAGE_BASE_URL}${item.backdrop_path}" class="hero-backdrop">
             <div class="hero-content">
                 <h1 class="hero-title">${title}</h1>
@@ -695,7 +684,7 @@ export const UI = {
         <div class="player-container">
             ${createMovieRow('Similar', item.similar.results.slice(0, 6))}
         </div>
-        `;
+`;
     },
 
     async renderWatchPage(id, type = 'movie', season = 1, episode = 1) {
@@ -708,7 +697,7 @@ export const UI = {
             Auth.addToHistory({
                 id: id,
                 type: type,
-                title: type === 'tv' ? `${item.name} S${season}:E${episode}` : item.title,
+                title: type === 'tv' ? `${item.name} S${season}:E${episode} ` : item.title,
                 poster_path: item.poster_path,
                 backdrop_path: item.backdrop_path
             });
@@ -725,12 +714,12 @@ export const UI = {
         // Helper to render options consistently
         const renderOptions = (list) => {
             return list.map((s, i) =>
-                `<option value="${i}" data-url="${getUrl(s)}">${s.name} ${s.isAdFree ? '[AD-FREE]' : ''} - ${s.type}</option>`
+                `< option value = "${i}" data - url="${getUrl(s)}" > ${s.name} ${s.isAdFree ? '[AD-FREE]' : ''} - ${s.type}</option > `
             ).join('');
         };
 
         const html = `
-        <div class="player-container" style="padding-top: 40px;">
+    < div class="player-container" style = "padding-top: 40px;" >
             <div style="margin-bottom: 20px;">
                 <!-- Party Selection Header -->
                 ${Party.isHost && Party.isSelectingMedia ? `
@@ -778,8 +767,8 @@ export const UI = {
             <div style="text-align: center; margin-top: 20px;">
                  <a href="#download/${type}/${id}" class="btn" style="background: var(--primary); color: white;"><i class="fas fa-download"></i> Download</a>
             </div>
-        </div>
-        `;
+        </div >
+    `;
         app.innerHTML = html;
 
         const sortSelect = document.getElementById('sortSelect');
@@ -855,7 +844,7 @@ export const UI = {
 
         // 2. Broadcast to room
         Party.sendSync('CHANGE_MEDIA', 0, mediaState);
-        Party.sendMessage(`Selected media: ${unescape(title)}`);
+        Party.sendMessage(`Selected media: ${unescape(title)} `);
 
         // 3. Return to party
         window.location.hash = '#watchparty';
@@ -869,34 +858,34 @@ export const UI = {
         let contentHtml = '';
         if (type === 'movie') {
             contentHtml = `
-            <div class="download-card">
+    < div class="download-card" >
                 <h2>${item.title}</h2>
                 <div class="download-options">
                         <a href="#transfer/movie/${id}/1080p" class="download-btn"><i class="fas fa-download"></i> Server 1 (1080p)</a>
                         <a href="#transfer/movie/${id}/720p" class="download-btn secondary"><i class="fas fa-download"></i> Server 2 (720p)</a>
                 </div>
-            </div>`;
+            </div > `;
         } else {
             const seasons = item.seasons.filter(s => s.season_number > 0);
             contentHtml = `
-            <h2>${item.name}</h2>
+    < h2 > ${item.name}</h2 >
             <select id="seasonSelect" onchange="window.loadSeasonEpisodes('${id}', this.value)" style="padding: 10px; margin: 10px 0; background: #333; color: white;">
                 ${seasons.map(s => `<option value="${s.season_number}">Season ${s.season_number}</option>`).join('')}
             </select>
             <div id="episodesList"></div>
-            `;
+`;
             setTimeout(() => window.loadSeasonEpisodes(id, seasons[0]?.season_number || 1), 100);
         }
 
         app.innerHTML = `
-        <div class="container" style="padding-top: 100px; color: white; max-width: 800px; margin: 0 auto;">
+    < div class="container" style = "padding-top: 100px; color: white; max-width: 800px; margin: 0 auto;" >
             <a href="#${type}/${id}" style="color: #ccc;"><i class="fas fa-arrow-left"></i> Back</a>
             <h1 class="section-title">Download</h1>
             <div style="background: var(--bg-card); padding: 30px; border-radius: 16px;">
                 ${contentHtml}
             </div>
-        </div>
-        `;
+        </div >
+    `;
     },
 
     async renderTransferPage(type, id, quality, season, episode) {
@@ -904,18 +893,18 @@ export const UI = {
         const item = await api.getDetails(id, type);
         const title = item.title || item.name;
         const isTv = type === 'tv';
-        const query = `intitle:"index of" "${title}" "${quality}" ${isTv ? `S${season}` : ''} (mkv|mp4)`;
+        const query = `intitle: "index of" "${title}" "${quality}" ${isTv ? `S${season}` : ''} (mkv | mp4)`;
 
         app.innerHTML = `
-        <div class="transfer-container" style="height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(#222, #000);">
-            <div class="transfer-box" style="text-align: center; color: white;">
-                <h2 style="color: var(--primary);">Connecting...</h2>
-                <p>Searching for best ${quality} source...</p>
-                <div class="progress-bar" style="width: 300px; height: 5px; background: #333; margin: 20px auto;"><div class="fill" style="width: 0%; height: 100%; background: var(--primary); transition: width 0.5s;"></div></div>
-                <div id="status">Initializing handshake...</div>
-            </div>
+    < div class="transfer-container" style = "height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(#222, #000);" >
+        <div class="transfer-box" style="text-align: center; color: white;">
+            <h2 style="color: var(--primary);">Connecting...</h2>
+            <p>Searching for best ${quality} source...</p>
+            <div class="progress-bar" style="width: 300px; height: 5px; background: #333; margin: 20px auto;"><div class="fill" style="width: 0%; height: 100%; background: var(--primary); transition: width 0.5s;"></div></div>
+            <div id="status">Initializing handshake...</div>
         </div>
-        `;
+        </div >
+    `;
 
         const fill = document.querySelector('.fill');
         const status = document.getElementById('status');

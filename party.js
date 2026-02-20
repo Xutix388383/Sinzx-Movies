@@ -11,6 +11,7 @@ export class PartyManager {
         // State
         this.isSelectingMedia = false;
         this.currentMedia = null;
+        this.history = JSON.parse(localStorage.getItem('party_history')) || [];
 
         this.callbacks = {
             onMessage: () => { },
@@ -18,6 +19,21 @@ export class PartyManager {
             onUserJoin: () => { },
             onStatus: () => { }
         };
+    }
+
+    addToHistory(id, role) {
+        const existing = this.history.findIndex(h => h.id === id);
+        if (existing !== -1) this.history.splice(existing, 1); // remove old
+
+        this.history.unshift({
+            id: id,
+            role: role,
+            timestamp: Date.now(),
+            users: [] // Can't track real users without being connected, but good placeholder
+        });
+
+        if (this.history.length > 5) this.history.pop();
+        localStorage.setItem('party_history', JSON.stringify(this.history));
     }
 
     // Initialize Peer
@@ -49,6 +65,8 @@ export class PartyManager {
         this.username = username || this.username;
         this.isHost = true;
         await this.init();
+        this.hostId = this.myId; // Set hostId for self
+        this.addToHistory(this.myId, 'Host');
         return this.myId;
     }
 
@@ -59,6 +77,7 @@ export class PartyManager {
         this.hostId = hostId;
         await this.init();
         this.connectToPeer(hostId);
+        this.addToHistory(hostId, 'Guest');
     }
 
     connectToPeer(peerId) {
@@ -99,6 +118,11 @@ export class PartyManager {
                 if (this.isHost) {
                     // Host relays new user to everyone else
                     this.broadcast({ type: 'System', message: `${data.name} joined!` });
+
+                    // Sync current media to the new user
+                    if (this.currentMedia) {
+                        senderConn.send({ type: 'SYNC', action: 'CHANGE_MEDIA', state: this.currentMedia });
+                    }
                 }
                 break;
             case 'CHAT':
